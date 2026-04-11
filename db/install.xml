@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/quiz/accessrule/tagproctoring/db" VERSION="20260411" COMMENT="XMLDB file for quizaccess_tagproctoring">
+    <TABLES>
+
+        <TABLE NAME="quizaccess_tagproctoring_settings" COMMENT="Per-quiz proctoring settings">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="durationsec" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="20"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="quizid" TYPE="unique" FIELDS="quizid"/>
+            </KEYS>
+        </TABLE>
+
+        <TABLE NAME="quizaccess_tagproctoring_scan" COMMENT="Room scan video records">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true"/>
+                <FIELD NAME="selfie_filename" TYPE="char" LENGTH="255" NOTNULL="false"/>
+                <FIELD NAME="idphoto_filename" TYPE="char" LENGTH="255" NOTNULL="false"/>
+                <FIELD NAME="scan_objects" TYPE="text" NOTNULL="false"/>
+                <FIELD NAME="scan_suspicious" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="quizid_userid" UNIQUE="false" FIELDS="quizid, userid"/>
+            </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="quizaccess_tagproctoring_screenshots" COMMENT="Webcam screenshots taken during attempt">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="quizid_userid_attemptid" UNIQUE="false" FIELDS="quizid, userid, attemptid"/>
+            </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="quizaccess_tagproctoring_events" COMMENT="Suspicious activity events during attempt">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="eventtype" TYPE="char" LENGTH="100" NOTNULL="true"/>
+                <FIELD NAME="detail" TYPE="text" NOTNULL="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="quizid_userid_attemptid" UNIQUE="false" FIELDS="quizid, userid, attemptid"/>
+                <INDEX NAME="eventtype" UNIQUE="false" FIELDS="eventtype"/>
+            </INDEXES>
+        </TABLE>
+
+        <TABLE NAME="quizaccess_tagproctoring_overrides" COMMENT="Manual valid overrides for proctored attempts">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="valid_override" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="overriddenby" TYPE="int" LENGTH="10" NOTNULL="true"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+                <KEY NAME="attemptid" TYPE="unique" FIELDS="attemptid"/>
+            </KEYS>
+        </TABLE>
+
+    </TABLES>
+</XMLDB>
