@@ -315,7 +315,7 @@ class report_list extends table_sql {
             return html_writer::tag('span', 'None', ['class' => 'text-muted small']);
         }
 
-        $highTypes = ['screenshare', 'multiplescreen'];
+        $hightypes = ['screenshare', 'multiplescreen'];
 
         // Count by type for the summary line.
         $counts = [];
@@ -326,8 +326,8 @@ class report_list extends table_sql {
         // Summary chips (one per type).
         $summary = '<div class="tagp-event-summary">';
         foreach ($counts as $type => $n) {
-            $isHigh = in_array($type, $highTypes);
-            $bg     = $isHigh ? '#dc2626' : '#d97706';
+            $ishigh = in_array($type, $hightypes);
+            $bg     = $ishigh ? '#dc2626' : '#d97706';
             $strkey = 'event_' . $type;
             $label  = get_string_manager()->string_exists($strkey, 'quizaccess_tagproctoring')
                 ? get_string($strkey, 'quizaccess_tagproctoring') : $type;
@@ -344,8 +344,8 @@ class report_list extends table_sql {
             $label  = get_string_manager()->string_exists($strkey, 'quizaccess_tagproctoring')
                 ? get_string($strkey, 'quizaccess_tagproctoring') : $event->eventtype;
             $time   = userdate($event->timecreated, '%H:%M:%S');
-            $isHigh = in_array($event->eventtype, $highTypes);
-            $bg     = $isHigh ? '#dc2626' : '#d97706';
+            $ishigh = in_array($event->eventtype, $hightypes);
+            $bg     = $ishigh ? '#dc2626' : '#d97706';
             $rows  .= '<div class="tagp-event-row" style="border-left:3px solid ' . $bg . ';">'
                    . '<span class="tagp-event-time">' . $time . '</span>'
                    . '<span class="tagp-event-label">' . htmlspecialchars($label) . '</span>'

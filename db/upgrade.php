@@ -61,5 +61,28 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         upgrade_plugin_savepoint(true, 2026041200, 'quizaccess', 'tagproctoring');
     }
 
+    // 2026041300 - Add source column to screenshots table ('webcam' or 'screen').
+    if ($oldversion < 2026041300) {
+        $table = new xmldb_table('quizaccess_tagproctoring_screenshots');
+
+        $field = new xmldb_field(
+            'source', XMLDB_TYPE_CHAR, '20', null, false, null, null, 'filename'
+        );
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Back-fill existing rows by deriving source from filename prefix.
+        $DB->execute(
+            "UPDATE {quizaccess_tagproctoring_screenshots}
+                SET source = CASE WHEN " . $DB->sql_like('filename', ':pfx', false) . "
+                             THEN 'screen' ELSE 'webcam' END
+              WHERE source IS NULL",
+            ['pfx' => 'screen_%']
+        );
+
+        upgrade_plugin_savepoint(true, 2026041300, 'quizaccess', 'tagproctoring');
+    }
+
     return true;
 }

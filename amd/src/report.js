@@ -33,6 +33,7 @@ define("quizaccess_tagproctoring/report", [], function() {
         visibilityhidden: {label: 'Tab Hidden', icon: '\ud83d\udc41', sev: 'medium'},
         fullscreenexit: {label: 'Fullscreen Exited', icon: '\u26f6', sev: 'medium'},
         screenshare: {label: 'Screen Sharing Initiated', icon: '\ud83d\udcfa', sev: 'critical'},
+        screensharestop: {label: 'Screen Share Stopped', icon: '\ud83d\udda5', sev: 'high'},
         multiplescreen: {label: 'Multiple Screens Detected', icon: '\ud83d\udda5', sev: 'critical'},
         copypaste: {label: 'Copy / Paste Activity', icon: '\ud83d\udccb', sev: 'medium'},
         contextmenu: {label: 'Right-Click Menu', icon: '\ud83d\uddb1', sev: 'low'},
@@ -40,8 +41,8 @@ define("quizaccess_tagproctoring/report", [], function() {
         nocamera: {label: 'Camera Unavailable', icon: '\ud83d\udcf7', sev: 'high'},
         noface: {label: 'No Face Detected', icon: '\ud83d\udeab', sev: 'high'},
         faceaway: {label: 'Looking Away from Screen', icon: '\ud83d\udc64', sev: 'medium'},
+        faceturn: {label: 'Face Turned Away', icon: '\ud83d\udc64', sev: 'medium'},
         multiplefaces: {label: 'Multiple Faces During Exam', icon: '\ud83d\udc65', sev: 'critical'},
-        screenshare_ended: {label: 'Screen Share Ended', icon: '\ud83d\udda5', sev: 'medium'},
     };
 
     var SCAN_VIOLATIONS = {
@@ -426,13 +427,25 @@ define("quizaccess_tagproctoring/report", [], function() {
 
         el('tagrep-flags-title').textContent =
             currentStudent.name + ' \u2014 Attempt #' + currentAttempt.attempt_num;
-        el('tagrep-flags-sub').textContent = fmtDateTime(currentAttempt.timestart) +
+
+        // Show session-start browser/OS info in the subtitle if available.
+        var sessionStartEvent = currentAttempt.events.find(function(e) {
+            return e.type === 'sessionstart';
+        });
+        var subText = fmtDateTime(currentAttempt.timestart) +
             '  \u2192  ' + fmtDateTime(currentAttempt.timefinish);
+        if (sessionStartEvent && sessionStartEvent.detail) {
+            subText += '  \u00b7  \ud83d\udcbb ' + sessionStartEvent.detail;
+        }
+        el('tagrep-flags-sub').textContent = subText;
 
         currentCats = [];
 
         var eCounts = {};
         currentAttempt.events.forEach(function(e) {
+            if (e.type === 'sessionstart') {
+                return; // informational only — exclude from violation categories
+            }
             eCounts[e.type] = (eCounts[e.type] || 0) + 1;
         });
         Object.keys(eCounts).forEach(function(type) {
@@ -545,7 +558,7 @@ define("quizaccess_tagproctoring/report", [], function() {
                 .filter(function(e) {return e.type === cat.event_type;})
                 .map(function(e) {return e.time;});
 
-            var FACE_EVENTS = {noface: 1, faceaway: 1, multiplefaces: 1, nocamera: 1};
+            var FACE_EVENTS = {noface: 1, faceaway: 1, faceturn: 1, multiplefaces: 1, nocamera: 1};
             var preferSource = FACE_EVENTS[cat.event_type] ? 'webcam' : 'screen';
 
             var allMatched = currentAttempt.screenshots.filter(function(s) {
@@ -569,6 +582,22 @@ define("quizaccess_tagproctoring/report", [], function() {
         }
 
         currentShotIdx = 0;
+
+        // Update viewer title with time range once shots are known.
+        if (currentShots.length > 1) {
+            var shotTimes = currentShots.map(function(s) {return s.time;});
+            var tMin = Math.min.apply(null, shotTimes);
+            var tMax = Math.max.apply(null, shotTimes);
+            var fmt = function(ts) {
+                return new Date(ts * 1000).toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            };
+            el('tagrep-viewer-title').textContent =
+                cat.icon + '  ' + cat.label +
+                '  \u2014  ' + currentShots.length + ' shots  (' + fmt(tMin) + ' \u2192 ' + fmt(tMax) + ')';
+        }
+
         renderShot();
     }
 
@@ -623,8 +652,20 @@ define("quizaccess_tagproctoring/report", [], function() {
             }
         }
 
+        // Mark screenshot as suspicious if it falls within 5 s of any violation event.
+        var allEventTimes = currentAttempt ? currentAttempt.events
+            .filter(function(e) {return e.type !== 'sessionstart';})
+            .map(function(e) {return e.time;}) : [];
+        var isSuspicious = allEventTimes.some(function(t) {
+            return Math.abs(shot.time - t) <= 5;
+        });
+
         el('tagrep-shot-img').src = shot.url;
         el('tagrep-shot-time').textContent = tStr + contextLine;
+
+        var suspBadge = el('tagrep-shot-suspicious');
+        suspBadge.style.display = isSuspicious ? '' : 'none';
+
         el('tagrep-shot-empty').style.display = 'none';
         el('tagrep-shot-content').style.display = '';
         el('tagrep-shot-counter').textContent = (currentShotIdx + 1) + ' / ' + currentShots.length;

@@ -189,44 +189,79 @@ class provider implements
 
         $userid = $contextlist->get_user()->id;
 
+        // Collect all valid contexts and build a quizid → context map.
+        $contextmap = [];
         foreach ($contextlist->get_contexts() as $context) {
             if (!$context instanceof \context_module) {
                 continue;
             }
-
             $cm = get_coursemodule_from_id('quiz', $context->instanceid);
             if (!$cm) {
                 continue;
             }
-            $quizid = $cm->instance;
+            $contextmap[$cm->instance] = $context;
+        }
 
-            // Export scan records.
-            $scans = $DB->get_records('quizaccess_tagproctoring_scan',
-                ['quizid' => $quizid, 'userid' => $userid]);
-            if ($scans) {
+        if (empty($contextmap)) {
+            return;
+        }
+
+        $quizids = array_keys($contextmap);
+        [$insql, $inparams] = $DB->get_in_or_equal($quizids, SQL_PARAMS_NAMED, 'qid');
+        $inparams['userid'] = $userid;
+
+        // Bulk-load all three tables in a single query each, then group by quizid.
+        $scansbyquiz = [];
+        $rs = $DB->get_recordset_select(
+            'quizaccess_tagproctoring_scan',
+            "quizid $insql AND userid = :userid",
+            $inparams
+        );
+        foreach ($rs as $row) {
+            $scansbyquiz[$row->quizid][] = $row;
+        }
+        $rs->close();
+
+        $shotsbyquiz = [];
+        $rs = $DB->get_recordset_select(
+            'quizaccess_tagproctoring_screenshots',
+            "quizid $insql AND userid = :userid",
+            $inparams
+        );
+        foreach ($rs as $row) {
+            $shotsbyquiz[$row->quizid][] = $row;
+        }
+        $rs->close();
+
+        $eventsbyquiz = [];
+        $rs = $DB->get_recordset_select(
+            'quizaccess_tagproctoring_events',
+            "quizid $insql AND userid = :userid",
+            $inparams
+        );
+        foreach ($rs as $row) {
+            $eventsbyquiz[$row->quizid][] = $row;
+        }
+        $rs->close();
+
+        // Export data per context using the in-memory results.
+        foreach ($contextmap as $quizid => $context) {
+            if (!empty($scansbyquiz[$quizid])) {
                 writer::with_context($context)->export_data(
                     [get_string('privacy:path:scans', 'quizaccess_tagproctoring')],
-                    (object)['scans' => array_values($scans)]
+                    (object)['scans' => $scansbyquiz[$quizid]]
                 );
             }
-
-            // Export screenshot records.
-            $screenshots = $DB->get_records('quizaccess_tagproctoring_screenshots',
-                ['quizid' => $quizid, 'userid' => $userid]);
-            if ($screenshots) {
+            if (!empty($shotsbyquiz[$quizid])) {
                 writer::with_context($context)->export_data(
                     [get_string('privacy:path:screenshots', 'quizaccess_tagproctoring')],
-                    (object)['screenshots' => array_values($screenshots)]
+                    (object)['screenshots' => $shotsbyquiz[$quizid]]
                 );
             }
-
-            // Export event log records.
-            $events = $DB->get_records('quizaccess_tagproctoring_events',
-                ['quizid' => $quizid, 'userid' => $userid]);
-            if ($events) {
+            if (!empty($eventsbyquiz[$quizid])) {
                 writer::with_context($context)->export_data(
                     [get_string('privacy:path:events', 'quizaccess_tagproctoring')],
-                    (object)['events' => array_values($events)]
+                    (object)['events' => $eventsbyquiz[$quizid]]
                 );
             }
         }

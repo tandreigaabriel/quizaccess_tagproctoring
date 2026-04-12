@@ -123,7 +123,6 @@ try {
             'tablet',
             'remote',
             'extra_person',
-            'face_turned',
         ];
 
         $flaggedfound = [];

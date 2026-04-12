@@ -236,29 +236,12 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
                                 if (faceModel) {
                                     faceModel.estimateFaces(videoEl, false).then(function(faces) {
-                                        if (faces.length === 0) {
-                                            detectedObjects["no_face"] =
-                                                (detectedObjects["no_face"] || 0) + 1;
-                                        }
+                                        // Only flag multiple faces — extra person present in the room.
+                                        // no_face and face_turned are expected during room panning and
+                                        // must NOT be flagged as suspicious in the room scan context.
                                         if (faces.length > 1) {
                                             detectedObjects["multiple_faces"] =
                                                 (detectedObjects["multiple_faces"] || 0) + 1;
-                                        }
-                                        // Face direction: if nose is offset from eye midpoint the face is turned.
-                                        if (faces.length === 1) {
-                                            var lm = faces[0].landmarks;
-                                            if (lm && lm.length >= 3) {
-                                                var rEyeX   = lm[0][0];
-                                                var lEyeX   = lm[1][0];
-                                                var noseTipX = lm[2][0];
-                                                var eyeMidX  = (rEyeX + lEyeX) / 2;
-                                                var eyeDist  = Math.abs(lEyeX - rEyeX);
-                                                if (eyeDist > 0 &&
-                                                        Math.abs(noseTipX - eyeMidX) / eyeDist > 0.25) {
-                                                    detectedObjects["face_turned"] =
-                                                        (detectedObjects["face_turned"] || 0) + 1;
-                                                }
-                                            }
                                         }
                                     });
                                 }
@@ -526,6 +509,10 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                         } else {
                             successEl.style.display = 'block';
                             statusEl.textContent = '';
+                            startBtn.disabled = true;
+                            startBtn.textContent = '\u2705 Room scan complete';
+                            startBtn.classList.remove('tagwiz-btn--danger');
+                            startBtn.classList.add('tagwiz-btn--record');
                             nextBtn.disabled = false;
                             markDone(1);
                         }
@@ -571,15 +558,86 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         var previewImg  = el('tagwiz-selfie-preview');
         var nextBtn     = el('tagwiz-selfie-next');
 
+        // ── Blur canvas: clear oval in centre, blurred background outside ──
+        var selfieCanvas = el('tagwiz-selfie-canvas');
+        var selfieCtx    = selfieCanvas ? selfieCanvas.getContext('2d') : null;
+        var blurAnimId   = null;
+
+        /**
+         * Render one frame to the selfie canvas:
+         *   1. Draw the full webcam frame with a CSS blur filter (background).
+         *   2. Clip to an oval in the centre and draw the same frame unblurred (face window).
+         *   3. Draw a thin oval border as a visual guide.
+         */
+        function drawBlurFrame() {
+            if (!selfieCtx || !video || video.readyState < 2) {
+                blurAnimId = requestAnimationFrame(drawBlurFrame);
+                return;
+            }
+
+            var W = selfieCanvas.width;
+            var H = selfieCanvas.height;
+            var cx = W / 2;
+            var cy = H / 2;
+            var rx = W * 0.38;   // oval horizontal radius — covers a face comfortably
+            var ry = H * 0.45;   // oval vertical radius
+
+            // 1. Blurred full frame as background.
+            selfieCtx.filter = 'blur(14px)';
+            selfieCtx.drawImage(video, 0, 0, W, H);
+
+            // 2. Dark tint over the blurred area so the oval stands out clearly.
+            selfieCtx.filter = 'none';
+            selfieCtx.fillStyle = 'rgba(0,0,0,0.35)';
+            selfieCtx.fillRect(0, 0, W, H);
+
+            // 3. Clear oval window showing the unblurred face.
+            selfieCtx.save();
+            selfieCtx.beginPath();
+            selfieCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            selfieCtx.clip();
+            selfieCtx.filter = 'none';
+            selfieCtx.drawImage(video, 0, 0, W, H);
+            selfieCtx.restore();
+
+            // 4. Oval border guide (dashed green line so student knows where to look).
+            selfieCtx.save();
+            selfieCtx.beginPath();
+            selfieCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+            selfieCtx.strokeStyle = 'rgba(34,197,94,0.85)';
+            selfieCtx.lineWidth = 3;
+            selfieCtx.setLineDash([10, 6]);
+            selfieCtx.stroke();
+            selfieCtx.restore();
+
+            blurAnimId = requestAnimationFrame(drawBlurFrame);
+        }
+
+        if (selfieCanvas) {
+            selfieCanvas.width  = 640;
+            selfieCanvas.height = 480;
+        }
+        // ── End blur canvas setup ──
+
         ensureWebcam(function(stream) {
             if (!stream) {
                 setStatus('tagwiz-selfie-status', 'Camera unavailable.', 'danger');
                 return;
             }
             attachStream(video, stream);
+            // Start the blur animation once the stream is attached.
+            if (selfieCtx) {
+                drawBlurFrame();
+            }
         });
 
         captureBtn.addEventListener('click', function() {
+            // Stop the blur canvas loop — the preview image takes over the display.
+            if (blurAnimId) {
+                cancelAnimationFrame(blurAnimId);
+                blurAnimId = null;
+            }
+            // Capture from the raw (unblurred) video for the stored selfie image.
             var canvas = document.createElement('canvas');
             canvas.width = 640;
             canvas.height = 480;
@@ -606,6 +664,10 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             done[2] = false;
             selfieBlobRef = null;
             setStatus('tagwiz-selfie-status', '', '');
+            // Restart the blur canvas loop after retake.
+            if (selfieCtx && !blurAnimId) {
+                drawBlurFrame();
+            }
         });
 
         /**
@@ -717,9 +779,9 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                 .then(function(data) {
                     if (data && data.status === 'ok') {
                         if (match.verified === 1) {
-                            // Clear match — allow through.
+                            // Face match confirmed — allow through for invigilator review.
                             setStatus('tagwiz-id-status',
-                                '\u2705 Identity verified — face matches your ID.', 'success');
+                                '\u2705 Face matched. Your ID photo has been saved for invigilator review.', 'success');
                             nextBtn.disabled = false;
                             markDone(3);
                         } else if (match.verified === 0) {
@@ -800,7 +862,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                     if (window.screen && window.screen.isExtended === true) {
                         setStatus('tagwiz-ss-status',
                             '\u26a0\ufe0f Multiple monitors detected. ' +
-                            'Please disconnect your secondary screen and try again.',
+                            'Please disconnect your secondary screen, then click \u201cShare Screen\u201d again.',
                             'danger');
                         return;
                     }

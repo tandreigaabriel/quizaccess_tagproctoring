@@ -32,6 +32,7 @@ $string['event_cameradisabled'] = 'Camera disabled';
 $string['event_contextmenu'] = 'Right-click detected';
 $string['event_copypaste'] = 'Copy/paste detected';
 $string['event_devtools'] = 'DevTools opened';
+$string['event_faceturn'] = 'Face turned away';
 $string['event_fullscreenexit'] = 'Exited full screen';
 $string['event_multiplescreen'] = 'Multiple screens detected';
 $string['event_nocamera'] = 'Camera unavailable';
@@ -39,6 +40,22 @@ $string['event_screenshare'] = 'Screen share detected';
 $string['event_screensharestop'] = 'Screen share stopped';
 $string['event_tabswitch'] = 'Tab switched';
 $string['event_visibilityhidden'] = 'Window hidden';
+$string['event_windowblur'] = 'Window lost focus';
+
+// Violation labels used in the proctoring report viewer.
+$string['violation_tabswitch'] = 'Tab Switch / Focus Loss';
+$string['violation_visibilityhidden'] = 'Tab Hidden';
+$string['violation_fullscreenexit'] = 'Fullscreen Exited';
+$string['violation_screenshare'] = 'Screen Sharing Initiated';
+$string['violation_multiplescreen'] = 'Multiple Screens Detected';
+$string['violation_copypaste'] = 'Copy / Paste Activity';
+$string['violation_contextmenu'] = 'Right-Click Menu';
+$string['violation_devtools'] = 'Developer Tools Open';
+$string['violation_nocamera'] = 'Camera Unavailable';
+$string['violation_noface'] = 'No Face Detected';
+$string['violation_faceaway'] = 'Looking Away from Screen';
+$string['violation_faceturn'] = 'Face Turned Away';
+$string['violation_multiplefaces'] = 'Multiple Faces During Exam';
 
 $string['idphotorequired'] = 'You must photograph your ID before starting the attempt.';
 $string['pluginname'] = 'TAG Proctoring';

@@ -1,4 +1,28 @@
-{{! Pre-exam proctoring wizard — rules, room scan, selfie, ID photo, screen share. }}
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template quizaccess_tagproctoring/wizard
+
+    Pre-exam proctoring wizard — rules, room scan, selfie, ID photo, screen share.
+
+    @package    quizaccess_tagproctoring
+    @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+    @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
 <div class="tagwiz-wrap" id="tagwiz-wrap">
 
   {{! ── Hero banner ── }}
@@ -166,8 +190,12 @@
       <div class="tagwiz-grid">
 
         <div>
-          <div class="tagwiz-video-wrap tagwiz-video-wrap--selfie">
-            <video id="tagwiz-selfie-video" autoplay muted playsinline></video>
+          <div class="tagwiz-video-wrap tagwiz-video-wrap--selfie" style="position:relative;overflow:hidden;">
+            {{! Video is kept alive for frame capture but hidden behind the canvas }}
+            <video id="tagwiz-selfie-video" autoplay muted playsinline
+              style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none;"></video>
+            {{! Canvas renders blurred background + clear oval — updated every animation frame }}
+            <canvas id="tagwiz-selfie-canvas" style="display:block;width:100%;height:100%;"></canvas>
             <div class="tagwiz-selfie-guide"></div>
           </div>
           <div id="tagwiz-selfie-preview-wrap" style="display:none" class="tagwiz-preview-wrap">

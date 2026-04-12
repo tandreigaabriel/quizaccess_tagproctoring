@@ -27,6 +27,8 @@ require_once(__DIR__ . '/../../../../config.php');
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/lib.php');
 
+// Prevent any PHP notices/warnings from corrupting the JSON response.
+ob_start();
 
 header('Content-Type: application/json');
 
@@ -48,15 +50,27 @@ try {
     $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid, 'userid' => $USER->id], '*', MUST_EXIST);
 
     if (empty($_FILES['screenshot']) || !is_uploaded_file($_FILES['screenshot']['tmp_name'])) {
+        ob_end_clean();
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => get_string('error_no_screenshot', 'quizaccess_tagproctoring')]);
         exit;
     }
 
+    // Enforce the admin-configured maximum screenshots per attempt to prevent storage overload.
+    // With 500+ concurrent students each triggering events, this cap keeps server load predictable.
+    $maxshots = (int) get_config('quizaccess_tagproctoring', 'maxscreenshots') ?: 50;
+    $existingcount = $DB->count_records('quizaccess_tagproctoring_screenshots', ['attemptid' => $attemptid]);
+    if ($existingcount >= $maxshots) {
+        ob_end_clean();
+        echo json_encode(['status' => 'ok', 'skipped' => true]);
+        exit;
+    }
+
     $fs = get_file_storage();
-    // Screen or webcam.
+    // Screen or webcam. PARAM_ALPHA strips everything except letters — safe for filenames.
     $source = optional_param('source', 'webcam', PARAM_ALPHA);
-    $filename = $source . '_' . $attemptid . '_' . $USER->id . '_' . time() . '.jpg';
+    // Append a short uniqid suffix so concurrent uploads in the same second never collide.
+    $filename = $source . '_' . $attemptid . '_' . $USER->id . '_' . time() . '_' . substr(uniqid(), -8) . '.jpg';
 
     $fileinfo = [
         'contextid' => $context->id,
@@ -75,10 +89,13 @@ try {
         'attemptid' => $attemptid,
         'timecreated' => time(),
         'filename' => $filename,
+        'source' => $source,
     ]);
 
+    ob_end_clean();
     echo json_encode(['status' => 'ok']);
 } catch (Throwable $e) {
+    ob_end_clean();
     http_response_code(500);
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }

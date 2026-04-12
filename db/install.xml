@@ -46,6 +46,7 @@
                 <FIELD NAME="attemptid" TYPE="int" LENGTH="10" NOTNULL="true"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
                 <FIELD NAME="filename" TYPE="char" LENGTH="255" NOTNULL="true"/>
+                <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="false" COMMENT="webcam or screen"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

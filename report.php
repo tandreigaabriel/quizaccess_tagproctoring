@@ -60,9 +60,9 @@ $reporturl = quizaccess_tagproctoring_get_report_url($cid, $cmid, $qid);
 
 $PAGE->set_url($reporturl);
 $PAGE->set_pagelayout('report');
-$PAGE->set_title($course->shortname . ': TAG Proctoring Report');
-$PAGE->set_heading($course->fullname . ': TAG Proctoring Report');
-$PAGE->navbar->add('Proctoring Report', $reporturl);
+$PAGE->set_title($course->shortname . ': ' . get_string('pluginname', 'quizaccess_tagproctoring'));
+$PAGE->set_heading($course->fullname . ': ' . get_string('pluginname', 'quizaccess_tagproctoring'));
+$PAGE->navbar->add(get_string('report_link_label', 'quizaccess_tagproctoring'), $reporturl);
 $PAGE->requires->css(new moodle_url('/mod/quiz/accessrule/tagproctoring/styles.css'));
 
 global $DB;
@@ -233,7 +233,12 @@ foreach ($attempts as $attempt) {
     $shotlist = [];
 
     foreach ($shots as $s) {
-        $src = (strpos($s->filename, 'screen_') === 0) ? 'screen' : 'webcam';
+        // Use stored source column; fall back to filename prefix for older rows.
+        if (!empty($s->source)) {
+            $src = $s->source;
+        } else {
+            $src = (strpos($s->filename, 'screen_') === 0) ? 'screen' : 'webcam';
+        }
 
         $shotlist[] = [
         'url' => quizaccess_tagproctoring_pluginfile_url($context, 'screenshots', $s->userid, $s->filename),
@@ -335,8 +340,18 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
             completed
             attempts</p>
         </div>
-        <input type="text" class="tagrep-search" placeholder="Search by name or email…"
-          oninput="tagRepSearch(this.value)">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" class="tagrep-search" placeholder="Search by name or email…"
+            oninput="tagRepSearch(this.value)">
+          <a href="<?= htmlspecialchars((new moodle_url(
+              '/mod/quiz/accessrule/tagproctoring/export_csv.php',
+              ['cmid' => $cmid, 'qid' => $qid, 'sesskey' => sesskey()]
+          ))->out(false)) ?>"
+            class="tagrep-btn tagrep-btn--outline"
+            style="white-space:nowrap;font-size:12px;padding:6px 12px;">
+            &#x1f4e5; Export CSV
+          </a>
+        </div>
       </div>
       <div class="tagrep-table-wrap">
         <table class="tagrep-table" id="tagrep-student-table">
@@ -392,7 +407,12 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
               Select a violation category on the left to view evidence screenshots
             </div>
             <div id="tagrep-shot-content" style="display:none">
-              <img id="tagrep-shot-img" class="tagrep-shot-img" src="" alt="Screenshot">
+              <div style="position:relative;display:inline-block;width:100%;">
+                <img id="tagrep-shot-img" class="tagrep-shot-img" src="" alt="Screenshot">
+                <span id="tagrep-shot-suspicious" style="display:none;position:absolute;top:8px;right:8px;
+                  background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;
+                  border-radius:10px;">&#x26a0;&#xfe0f; Suspicious</span>
+              </div>
               <p class="tagrep-shot-time" id="tagrep-shot-time"></p>
             </div>
           </div>
