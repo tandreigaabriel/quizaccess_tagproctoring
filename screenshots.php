@@ -45,7 +45,7 @@ $user = $DB->get_record('user', ['id' => $attempt->userid], '*', MUST_EXIST);
 $screenshots = $DB->get_records('quizaccess_tagproctoring_screenshots', ['attemptid' => $attemptid], 'timecreated ASC');
 $events = $DB->get_records('quizaccess_tagproctoring_events', ['attemptid' => $attemptid], 'timecreated ASC');
 
-$title = 'Screenshots — ' . fullname($user);
+$title = get_string('screenshots_title', 'quizaccess_tagproctoring', fullname($user));
 $PAGE->set_url(new moodle_url('/mod/quiz/accessrule/tagproctoring/screenshots.php', ['cmid' => $cmid, 'attemptid' => $attemptid]));
 $PAGE->set_pagelayout('report');
 $PAGE->set_title($title);
@@ -53,19 +53,26 @@ $PAGE->set_heading($title);
 
 echo $OUTPUT->header();
 echo html_writer::start_div('container-fluid mt-3');
-echo html_writer::tag('h4', '📸 ' . $title);
+echo html_writer::tag('h4', $title);
 $started = userdate($attempt->timestart);
-$finished = $attempt->timefinish ? userdate($attempt->timefinish) : 'In progress';
+$finished = $attempt->timefinish ? userdate($attempt->timefinish) : get_string('screenshots_inprogress', 'quizaccess_tagproctoring');
 
-$text = 'Attempt started: ' . $started . ' | Finished: ' . $finished;
+$text = get_string('screenshots_attemptinfo', 'quizaccess_tagproctoring', [
+    'started'  => $started,
+    'finished' => $finished,
+]);
 
 echo html_writer::tag('p', $text);
 
 // Events summary.
 if ($events) {
-    echo html_writer::tag('h5', '⚠️ Suspicious Events', ['class' => 'mt-4']);
+    echo html_writer::tag('h5', get_string('screenshots_events_heading', 'quizaccess_tagproctoring'), ['class' => 'mt-4']);
     $table = new html_table();
-    $table->head = ['Time', 'Event', 'Detail'];
+    $table->head = [
+        get_string('screenshots_col_time', 'quizaccess_tagproctoring'),
+        get_string('screenshots_col_event', 'quizaccess_tagproctoring'),
+        get_string('screenshots_col_detail', 'quizaccess_tagproctoring'),
+    ];
     $table->attributes['class'] = 'table table-sm table-bordered';
     foreach ($events as $event) {
         $strkey = 'event_' . $event->eventtype;
@@ -82,7 +89,7 @@ if ($events) {
 
 // Screenshots grid.
 if ($screenshots) {
-    echo html_writer::tag('h5', '📷 Webcam Screenshots (' . count($screenshots) . ')', ['class' => 'mt-4']);
+    echo html_writer::tag('h5', get_string('screenshots_grid_heading', 'quizaccess_tagproctoring', count($screenshots)), ['class' => 'mt-4']);
     echo html_writer::start_div('row');
     foreach ($screenshots as $shot) {
         $url = moodle_url::make_pluginfile_url(
@@ -104,7 +111,7 @@ if ($screenshots) {
     }
     echo html_writer::end_div();
 } else {
-    echo html_writer::tag('p', 'No screenshots captured for this attempt.', ['class' => 'text-muted mt-3']);
+    echo html_writer::tag('p', get_string('screenshots_none', 'quizaccess_tagproctoring'), ['class' => 'text-muted mt-3']);
 }
 
 echo html_writer::end_div();

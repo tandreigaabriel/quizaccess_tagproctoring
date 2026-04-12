@@ -152,6 +152,58 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
     }
 
     /**
+     * Add the proctoring wizard HTML and hidden consent fields to the preflight form.
+     *
+     * @param object $quizform The quiz preflight form object.
+     * @param MoodleQuickForm $mform The Moodle quick form.
+     * @param int $attemptid The attempt ID (0 for a new attempt).
+     */
+    public function add_preflight_check_form_fields($quizform, $mform, $attemptid) {
+        global $PAGE, $OUTPUT;
+
+        // Hidden fields set by JS before form submission.
+        // advcheckbox generates both a hidden (value=0) and a visible checkbox (value=1).
+        // recorder.js sets .checked=true on id_tagproctoring_consent before submit.
+        $mform->addElement('advcheckbox', 'tagproctoring_consent', '', '', [], [0, 1]);
+        $mform->setType('tagproctoring_consent', PARAM_BOOL);
+
+        $mform->addElement('hidden', 'tagproctoring_complete', 0);
+        $mform->setType('tagproctoring_complete', PARAM_INT);
+
+        $quiz = $this->quizobj->get_quiz();
+
+        // Render the wizard from the Mustache template.
+        $wizardhtml = $OUTPUT->render_from_template('quizaccess_tagproctoring/wizard', []);
+
+        $mform->addElement('html', $wizardhtml);
+
+        // Hide the Moodle submit button and the advcheckbox — both are controlled by wizard JS.
+        $mform->addElement('html',
+            '<style>
+                #id_submitbutton { display:none !important; }
+                .fitem:has(#id_tagproctoring_consent) { display:none !important; }
+            </style>'
+        );
+
+        $PAGE->requires->js_call_amd(
+            'quizaccess_tagproctoring/recorder',
+            'init',
+            [[
+                'quizid'     => (int) $quiz->id,
+                'uploadurl'  => (new moodle_url(
+                    '/mod/quiz/accessrule/tagproctoring/upload.php'
+                ))->out(false),
+                'selfieurl'  => (new moodle_url(
+                    '/mod/quiz/accessrule/tagproctoring/selfie_upload.php'
+                ))->out(false),
+                'idphotourl' => (new moodle_url(
+                    '/mod/quiz/accessrule/tagproctoring/id_upload.php'
+                ))->out(false),
+            ]]
+        );
+    }
+
+    /**
      * Validate preflight check data.
      *
      * @param array $data
@@ -267,7 +319,7 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
 
         $reporturl = quizaccess_tagproctoring_get_report_url(
             $quiz->course,
-            $quiz->cmid,
+            $this->quizobj->get_cm()->id,
             $quiz->id
         );
 
@@ -275,7 +327,7 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
 
         $link = $OUTPUT->action_link(
             $reporturl,
-            $icon . ' Proctoring Report',
+            $icon . ' ' . get_string('report_link_label', 'quizaccess_tagproctoring'),
             null,
             ['class' => 'btn btn-outline-primary btn-sm']
         );

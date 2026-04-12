@@ -1,0 +1,804 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * TAG Proctoring report UI — student list, session cards, violation flags, screenshot viewer.
+ *
+ * @module     quizaccess_tagproctoring/report
+ * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+define("quizaccess_tagproctoring/report", [], function() {
+    'use strict';
+
+    // Populated by init().
+    var DATA = null;
+    var CFG2 = {};
+
+    var VIOLATIONS = {
+        tabswitch: {label: 'Tab Switch / Focus Loss', icon: '\ud83d\udd04', sev: 'high'},
+        visibilityhidden: {label: 'Tab Hidden', icon: '\ud83d\udc41', sev: 'medium'},
+        fullscreenexit: {label: 'Fullscreen Exited', icon: '\u26f6', sev: 'medium'},
+        screenshare: {label: 'Screen Sharing Initiated', icon: '\ud83d\udcfa', sev: 'critical'},
+        multiplescreen: {label: 'Multiple Screens Detected', icon: '\ud83d\udda5', sev: 'critical'},
+        copypaste: {label: 'Copy / Paste Activity', icon: '\ud83d\udccb', sev: 'medium'},
+        contextmenu: {label: 'Right-Click Menu', icon: '\ud83d\uddb1', sev: 'low'},
+        devtools: {label: 'Developer Tools Open', icon: '\ud83d\udd27', sev: 'high'},
+        nocamera: {label: 'Camera Unavailable', icon: '\ud83d\udcf7', sev: 'high'},
+        noface: {label: 'No Face Detected', icon: '\ud83d\udeab', sev: 'high'},
+        faceaway: {label: 'Looking Away from Screen', icon: '\ud83d\udc64', sev: 'medium'},
+        multiplefaces: {label: 'Multiple Faces During Exam', icon: '\ud83d\udc65', sev: 'critical'},
+        screenshare_ended: {label: 'Screen Share Ended', icon: '\ud83d\udda5', sev: 'medium'},
+    };
+
+    var SCAN_VIOLATIONS = {
+        'cell phone': {label: 'Phone Detected', icon: '\ud83d\udcf1', sev: 'critical'},
+        'book': {label: 'Book / Notes Detected', icon: '\ud83d\udcda', sev: 'critical'},
+        'tablet': {label: 'Tablet Detected', icon: '\ud83d\udcf1', sev: 'critical'},
+        'remote': {label: 'Remote Control Detected', icon: '\ud83c\udfae', sev: 'high'},
+        'extra_person': {label: 'Extra Person in Room', icon: '\ud83d\udc65', sev: 'critical'},
+        'face_turned': {label: 'Looking Away from Screen', icon: '\ud83d\udc64', sev: 'high'},
+        'no_face': {label: 'No Face Detected', icon: '\ud83d\udeab', sev: 'high'},
+        'multiple_faces': {label: 'Multiple Faces Detected', icon: '\ud83d\udc65', sev: 'critical'},
+    };
+
+    var SEV_COLOR = {critical: '#dc2626', high: '#d97706', medium: '#2563eb', low: '#6b7280'};
+    var RISK_COLOR = {invalid: '#dc2626', review: '#d97706', valid: '#16a34a'};
+    var RISK_LABEL = {invalid: 'Invalid', review: 'Needs Review', valid: 'Valid'};
+    var SEV_ORDER = {critical: 0, high: 1, medium: 2, low: 3};
+
+    // State.
+    var currentStudent = null;
+    var currentAttempt = null;
+    var currentShots = [];
+    var currentShotIdx = 0;
+    var currentCats = [];
+    var currentActiveCat = null;
+
+    /**
+     * Return the element with the given ID.
+     *
+     * @param {string} id Element ID.
+     * @returns {HTMLElement|null} The element.
+     */
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    /**
+     * Escape HTML special characters.
+     *
+     * @param {*} s Value to escape.
+     * @returns {string} HTML-safe string.
+     */
+    function esc(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Format a Unix timestamp as short date and time.
+     *
+     * @param {number} ts Unix timestamp (seconds).
+     * @returns {string} Formatted date-time string, or em-dash for falsy input.
+     */
+    function fmtDateTime(ts) {
+        if (!ts) {
+            return '\u2014';
+        }
+        var d = new Date(ts * 1000);
+        return d.toLocaleDateString(undefined, {day: '2-digit', month: 'short'}) +
+            ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    }
+
+    /**
+     * Format the duration between two Unix timestamps as a human-readable string.
+     *
+     * @param {number} start Unix start timestamp (seconds).
+     * @param {number} end   Unix end timestamp (seconds).
+     * @returns {string} Duration string (e.g. "42 min" or "1h 5m"), or em-dash.
+     */
+    function fmtDuration(start, end) {
+        if (!start || !end) {
+            return '\u2014';
+        }
+        var m = Math.round((end - start) / 60);
+        return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + ' min';
+    }
+
+    /**
+     * Return the effective risk level for an attempt, accounting for overrides.
+     *
+     * @param {Object} a Attempt data object.
+     * @returns {string} Risk level: 'valid', 'review', or 'invalid'.
+     */
+    function effectiveRisk(a) {
+        return a.override_valid ? 'valid' : a.risk_level;
+    }
+
+    /**
+     * Return the worst risk level across all attempts for a student.
+     *
+     * @param {Object} s Student data object with an attempts array.
+     * @returns {string} Worst risk level.
+     */
+    function overallRisk(s) {
+        var worst = 'valid';
+        s.attempts.forEach(function(a) {
+            var rl = effectiveRisk(a);
+            if (rl === 'invalid') {
+                worst = 'invalid';
+            } else if (rl === 'review' && worst !== 'invalid') {
+                worst = 'review';
+            }
+        });
+        return worst;
+    }
+
+    /**
+     * Build a coloured risk badge HTML string.
+     *
+     * @param {string} level Risk level key ('valid', 'review', 'invalid').
+     * @param {string} extra Optional suffix text appended to the label.
+     * @returns {string} HTML badge element string.
+     */
+    function riskBadge(level, extra) {
+        var label = extra ? (RISK_LABEL[level] + ' ' + extra) : RISK_LABEL[level];
+        return '<span class="tagrep-badge" style="background:' + RISK_COLOR[level] + ';">' + label + '</span>';
+    }
+
+    /**
+     * Build a label/value info-row HTML string.
+     *
+     * @param {string} label Row label text.
+     * @param {string} value Row value text.
+     * @returns {string} HTML div string.
+     */
+    function infoRow(label, value) {
+        return '<div class="tagrep-info-row">' +
+            '<span class="tagrep-info-lbl">' + esc(label) + '</span>' +
+            '<span class="tagrep-info-val">' + esc(value) + '</span>' +
+            '</div>';
+    }
+
+    /**
+     * Switch the visible panel and update breadcrumb state.
+     *
+     * @param {string} panel Panel name: 'students', 'sessions', or 'flags'.
+     */
+    function tagRepNav(panel) {
+        el('tagrep-panel-students').style.display = panel === 'students' ? '' : 'none';
+        el('tagrep-panel-sessions').style.display = panel === 'sessions' ? '' : 'none';
+        el('tagrep-panel-flags').style.display = panel === 'flags' ? '' : 'none';
+
+        el('tagrep-bc-students').className = 'tagrep-nav-item' +
+            (panel === 'students' ? ' tagrep-nav-item--active' : '');
+
+        var showS = panel !== 'students' && currentStudent;
+        el('tagrep-bc-sep1').style.display = showS ? '' : 'none';
+        el('tagrep-bc-sessions').style.display = showS ? '' : 'none';
+        el('tagrep-bc-sessions').className = 'tagrep-nav-item' +
+            (panel === 'sessions' ? ' tagrep-nav-item--active' : '');
+        if (currentStudent) {
+            el('tagrep-bc-sessions').textContent = currentStudent.name;
+        }
+
+        var showF = panel === 'flags';
+        el('tagrep-bc-sep2').style.display = showF ? '' : 'none';
+        el('tagrep-bc-flags').style.display = showF ? '' : 'none';
+        if (showF) {
+            el('tagrep-bc-flags').textContent =
+                'Flags \u2014 Attempt #' + (currentAttempt ? currentAttempt.attempt_num : '');
+        }
+    }
+
+    /**
+     * Render the student list table rows from the given data array.
+     *
+     * @param {Array} data Array of student data objects to display.
+     */
+    function renderStudentList(data) {
+        var tbody = el('tagrep-tbody');
+        var empty = el('tagrep-empty');
+        if (!data.length) {
+            tbody.innerHTML = '';
+            empty.style.display = '';
+            return;
+        }
+        empty.style.display = 'none';
+        var rows = '';
+        data.forEach(function(s) {
+            var last = s.attempts[s.attempts.length - 1];
+            rows += '<tr>' +
+                '<td><strong>' + esc(s.name) + '</strong></td>' +
+                '<td class="tagrep-muted">' + esc(s.email) + '</td>' +
+                '<td class="tagrep-center">' + s.attempts.length + '</td>' +
+                '<td class="tagrep-muted">' + fmtDateTime(last ? last.timestart : 0) + '</td>' +
+                '<td>' + riskBadge(overallRisk(s)) + '</td>' +
+                '<td class="tagrep-td-action">' +
+                '<button class="tagrep-btn tagrep-btn--primary" onclick="tagRepOpenStudent(' + s.userid +
+                ')">View Sessions \u2192</button>' +
+                '</td>' +
+                '</tr>';
+        });
+        tbody.innerHTML = rows;
+    }
+
+    /**
+     * Filter and re-render the student list based on a search query.
+     *
+     * @param {string} q Search string to match against name or email.
+     */
+    function tagRepSearch(q) {
+        q = q.toLowerCase();
+        renderStudentList(DATA.filter(function(s) {
+            return s.name.toLowerCase().indexOf(q) !== -1 ||
+                s.email.toLowerCase().indexOf(q) !== -1;
+        }));
+    }
+
+    /**
+     * Open the sessions panel for the student with the given user ID.
+     *
+     * @param {number} uid User ID of the student to view.
+     */
+    function tagRepOpenStudent(uid) {
+        currentStudent = DATA.find(function(s) {
+            return s.userid === uid;
+        });
+        if (!currentStudent) {
+            return;
+        }
+        renderSessions(currentStudent);
+        tagRepNav('sessions');
+    }
+
+    /**
+     * Render the session cards for a student into the sessions panel.
+     *
+     * @param {Object} student Student data object.
+     */
+    function renderSessions(student) {
+        var html = '<div class="tagrep-card">' +
+            '<div class="tagrep-card-hd">' +
+            '<div><h4 class="tagrep-title">' + esc(student.name) + '</h4>' +
+            '<p class="tagrep-subtitle">' + esc(student.email) +
+            ' &nbsp;\u00b7&nbsp; ' + student.attempts.length + ' attempt(s)</p></div>' +
+            '</div>' +
+            '<div class="tagrep-sessions-grid">';
+
+        student.attempts.forEach(function(a) {
+            var pct = a.quiz_sumgrades ? Math.round(a.sumgrades * 100 / a.quiz_sumgrades) : null;
+            var scan = a.scan;
+
+            html += '<div class="tagrep-session-card">';
+
+            var dispRisk = effectiveRisk(a);
+            html += '<div class="tagrep-session-hd">' +
+                '<span class="tagrep-session-num">Attempt #' + a.attempt_num + '</span>' +
+                riskBadge(dispRisk, a.override_valid ? '\u2713 Overridden' : '') +
+                '</div>';
+
+            html += '<div class="tagrep-session-body">';
+
+            // Selfie + ID photo side by side with face-match badge.
+            html += '<div class="tagrep-session-photo">';
+            html += '<div style="display:flex;gap:8px;align-items:flex-start;">';
+            if (scan && scan.selfie_url) {
+                html += '<div style="text-align:center;">' +
+                    '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">Selfie</div>' +
+                    '<img src="' + esc(scan.selfie_url) + '" class="tagrep-selfie-img" alt="Selfie" ' +
+                    'onclick="window.open(\'' + esc(scan.selfie_url) + '\',\'_blank\')"' +
+                    ' style="cursor:zoom-in;width:80px;height:60px;object-fit:cover;border-radius:4px;">' +
+                    '</div>';
+            } else {
+                html += '<div class="tagrep-selfie-ph" style="width:80px;height:60px;">No<br>Selfie</div>';
+            }
+            if (scan && scan.idphoto_url) {
+                html += '<div style="text-align:center;">' +
+                    '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">ID Photo</div>' +
+                    '<img src="' + esc(scan.idphoto_url) + '" class="tagrep-selfie-img" alt="ID Photo" ' +
+                    'onclick="window.open(\'' + esc(scan.idphoto_url) + '\',\'_blank\')"' +
+                    ' style="cursor:zoom-in;width:80px;height:60px;object-fit:cover;border-radius:4px;">' +
+                    '</div>';
+            }
+            html += '</div>';
+
+            // Face-match badge.
+            if (scan) {
+                var fmv = scan.face_match_verified;
+                var fmd = scan.face_match_distance;
+                var fmBadge, fmColor;
+                if (fmv === 1) {
+                    fmBadge = '\u2705 Face Match (' + (fmd !== null ? (fmd * 100).toFixed(0) + '%' : '') + ')';
+                    fmColor = '#16a34a';
+                } else if (fmv === 0) {
+                    fmBadge = '\u274c Face Mismatch (' + (fmd !== null ? (fmd * 100).toFixed(0) + '%' : '') + ')';
+                    fmColor = '#dc2626';
+                } else {
+                    fmBadge = '\u2753 ID Not Verified';
+                    fmColor = '#6b7280';
+                }
+                html += '<div style="margin-top:6px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;' +
+                    'color:#fff;background:' + fmColor + ';display:inline-block;">' + fmBadge + '</div>';
+            }
+
+            html += '</div>';
+
+            html += '<div class="tagrep-session-info">';
+            html += infoRow('Start', fmtDateTime(a.timestart));
+            html += infoRow('End', fmtDateTime(a.timefinish));
+            html += infoRow('Duration', fmtDuration(a.timestart, a.timefinish));
+            html += infoRow('Score', pct !== null ? pct + '%' : '\u2014');
+            html += infoRow('Events', a.events.length + ' logged');
+            html += infoRow('Screenshots', a.screenshots.length + ' captured');
+            html += '</div>';
+            html += '</div>';
+
+            if (scan && scan.objects && Object.keys(scan.objects).length) {
+                html += '<div class="tagrep-scan-chips">';
+                Object.keys(scan.objects).forEach(function(cls) {
+                    var def = SCAN_VIOLATIONS[cls] || {label: cls, sev: 'medium'};
+                    html += '<span class="tagrep-scan-chip" style="background:' + SEV_COLOR[def.sev] + ';">' +
+                        esc(def.label) + ' &times;' + scan.objects[cls] + '</span>';
+                });
+                html += '</div>';
+            }
+
+            html += '<div class="tagrep-session-actions">';
+            if (a.events.length > 0 || (scan && scan.suspicious)) {
+                html += '<button class="tagrep-btn tagrep-btn--danger" ' +
+                    'onclick="tagRepOpenFlags(' + student.userid + ',' + a.id + ')">' +
+                    '\u2691 View Flags</button> ';
+            }
+            if (a.override_valid) {
+                html += '<button class="tagrep-btn" style="background:#16a34a;color:#fff;" ' +
+                    'onclick="tagRepSetOverride(' + student.userid + ',' + a.id + ',0)">' +
+                    '\u2713 Valid (Clear Override)</button> ';
+            } else {
+                html += '<button class="tagrep-btn tagrep-btn--outline" ' +
+                    'onclick="tagRepSetOverride(' + student.userid + ',' + a.id + ',1)">' +
+                    '\u2713 Mark as Valid</button> ';
+            }
+            html += '<a href="' + esc(a.review_url) +
+                '" target="_blank" class="tagrep-btn tagrep-btn--outline">Quiz Results \u2197</a>';
+
+            html += '<div style="width:100%;margin-top:6px;display:flex;gap:6px;">';
+            if (a.events.length > 0) {
+                html += '<button class="tagrep-btn"' +
+                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;"' +
+                    ' onclick="tagRepDeleteEvents(' + student.userid + ',' + a.id + ')">' +
+                    '\ud83d\uddd1 Delete Events (' + a.events.length + ')</button>';
+            }
+            if (a.screenshots.length > 0) {
+                html += '<button class="tagrep-btn"' +
+                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;"' +
+                    ' onclick="tagRepDeleteScreenshots(' + student.userid + ',' + a.id + ')">' +
+                    '\ud83d\uddd1 Delete Screenshots (' + a.screenshots.length + ')</button>';
+            }
+            if (scan && (scan.video_url || scan.selfie_url)) {
+                var durl = CFG2.deleteScanBase + '&userid=' + student.userid;
+                html += '<a href="' + esc(durl) + '" class="tagrep-btn"' +
+                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;">' +
+                    '\ud83d\uddd1 Delete Scan Data</a>';
+            }
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+        });
+
+        html += '</div></div>';
+        el('tagrep-sessions-content').innerHTML = html;
+    }
+
+    /**
+     * Open the flags panel for the given student's attempt.
+     *
+     * @param {number} uid       User ID of the student.
+     * @param {number} attemptId Attempt ID to show flags for.
+     */
+    function tagRepOpenFlags(uid, attemptId) {
+        currentStudent = DATA.find(function(s) {
+            return s.userid === uid;
+        });
+        currentAttempt = currentStudent ?
+            currentStudent.attempts.find(function(a) {
+                return a.id === attemptId;
+            }) :
+            null;
+        if (!currentAttempt) {
+            return;
+        }
+
+        el('tagrep-flags-title').textContent =
+            currentStudent.name + ' \u2014 Attempt #' + currentAttempt.attempt_num;
+        el('tagrep-flags-sub').textContent = fmtDateTime(currentAttempt.timestart) +
+            '  \u2192  ' + fmtDateTime(currentAttempt.timefinish);
+
+        currentCats = [];
+
+        var eCounts = {};
+        currentAttempt.events.forEach(function(e) {
+            eCounts[e.type] = (eCounts[e.type] || 0) + 1;
+        });
+        Object.keys(eCounts).forEach(function(type) {
+            var def = VIOLATIONS[type] || {label: type, icon: '\u26a0', sev: 'medium'};
+            currentCats.push({
+                id: 'ev_' + type,
+                label: def.label,
+                icon: def.icon,
+                sev: def.sev,
+                count: eCounts[type],
+                source: 'event',
+                event_type: type
+            });
+        });
+
+        var scan = currentAttempt.scan;
+        if (scan && scan.objects) {
+            Object.keys(scan.objects).forEach(function(cls) {
+                var def = SCAN_VIOLATIONS[cls] || {label: cls, icon: '\u26a0', sev: 'medium'};
+                currentCats.push({
+                    id: 'sc_' + cls.replace(/\s/g, '_'),
+                    label: def.label,
+                    icon: def.icon,
+                    sev: def.sev,
+                    count: scan.objects[cls],
+                    source: 'scan',
+                    scan_class: cls
+                });
+            });
+        }
+
+        currentCats.sort(function(a, b) {
+            return (SEV_ORDER[a.sev] || 9) - (SEV_ORDER[b.sev] || 9);
+        });
+
+        var listHtml = '';
+        if (!currentCats.length) {
+            listHtml = '<p class="tagrep-no-flags">No violations detected.</p>';
+        } else {
+            currentCats.forEach(function(cat, i) {
+                listHtml += '<div class="tagrep-cat-item" id="tagrep-cat-' + i +
+                    '" onclick="tagRepSelectCat(' + i + ')">' +
+                    '<span class="tagrep-cat-icon">' + cat.icon + '</span>' +
+                    '<div class="tagrep-cat-text">' +
+                    '<span class="tagrep-cat-label">' + esc(cat.label) + '</span>' +
+                    '<span class="tagrep-cat-src">' +
+                    (cat.source === 'scan' ? 'Room Scan' : 'During Exam') +
+                    '</span>' +
+                    '</div>' +
+                    '<span class="tagrep-cat-badge" style="background:' + SEV_COLOR[cat.sev] + ';">' +
+                    cat.count + '</span>' +
+                    '</div>';
+            });
+        }
+        el('tagrep-cat-list').innerHTML = listHtml;
+
+        var scanSec = el('tagrep-scan-section');
+        var scanVid = el('tagrep-scan-video');
+        if (scan && scan.video_url) {
+            scanVid.src = scan.video_url;
+            scanSec.style.display = '';
+        } else {
+            scanSec.style.display = 'none';
+            scanVid.src = '';
+        }
+
+        resetViewer();
+        tagRepNav('flags');
+    }
+
+    /**
+     * Reset the screenshot viewer to its empty/default state.
+     */
+    function resetViewer() {
+        currentShots = [];
+        currentShotIdx = 0;
+        currentActiveCat = null;
+        el('tagrep-shot-empty').style.display = '';
+        el('tagrep-shot-content').style.display = 'none';
+        el('tagrep-shot-nav').style.display = 'none';
+        el('tagrep-shot-empty').innerHTML =
+            '<span style="font-size:48px;display:block;margin-bottom:12px;">\ud83d\uddbc</span>' +
+            'Select a violation category on the left to view evidence';
+        el('tagrep-viewer-title').textContent = 'Select a category to view evidence';
+    }
+
+    /**
+     * Select and activate a violation category, loading its associated screenshots.
+     *
+     * @param {number} idx Index into the currentCats array.
+     */
+    function tagRepSelectCat(idx) {
+        currentCats.forEach(function(_, i) {
+            var el2 = el('tagrep-cat-' + i);
+            if (el2) {
+                el2.className = 'tagrep-cat-item' + (i === idx ? ' tagrep-cat-item--active' : '');
+            }
+        });
+
+        var cat = currentCats[idx];
+        if (!cat || !currentAttempt) {
+            return;
+        }
+        currentActiveCat = cat;
+
+        el('tagrep-viewer-title').textContent = cat.icon + '  ' + cat.label;
+
+        if (cat.source === 'event') {
+            var times = currentAttempt.events
+                .filter(function(e) {return e.type === cat.event_type;})
+                .map(function(e) {return e.time;});
+
+            var FACE_EVENTS = {noface: 1, faceaway: 1, multiplefaces: 1, nocamera: 1};
+            var preferSource = FACE_EVENTS[cat.event_type] ? 'webcam' : 'screen';
+
+            var allMatched = currentAttempt.screenshots.filter(function(s) {
+                return times.some(function(t) {return Math.abs(s.time - t) <= 90;});
+            });
+            currentShots = allMatched.filter(function(s) {return s.source === preferSource;});
+            if (!currentShots.length) {
+                currentShots = allMatched;
+            }
+
+            currentShots.sort(function(a, b) {
+                var dA = Math.min.apply(null, times.map(function(t) {return Math.abs(a.time - t);}));
+                var dB = Math.min.apply(null, times.map(function(t) {return Math.abs(b.time - t);}));
+                return dA - dB;
+            });
+            if (!currentShots.length) {
+                currentShots = currentAttempt.screenshots.slice();
+            }
+        } else {
+            currentShots = [];
+        }
+
+        currentShotIdx = 0;
+        renderShot();
+    }
+
+    /**
+     * Render the currently selected screenshot in the viewer.
+     */
+    function renderShot() {
+        if (!currentShots.length) {
+            el('tagrep-shot-empty').style.display = '';
+            el('tagrep-shot-content').style.display = 'none';
+            el('tagrep-shot-nav').style.display = 'none';
+            if (currentActiveCat && currentActiveCat.source === 'scan') {
+                var hasVid = currentAttempt && currentAttempt.scan && currentAttempt.scan.video_url;
+                el('tagrep-shot-empty').innerHTML =
+                    '<span style="font-size:36px;display:block;margin-bottom:10px;">\ud83c\udfa5</span>' +
+                    '<strong>Evidence in Room Scan Recording</strong><br>' +
+                    '<span style="color:#6b7280;font-size:12px;">' +
+                    'This violation was detected by AI during the room scan.<br>' +
+                    (hasVid ? 'Watch the room scan video on the left panel.' : 'No room scan video available.') +
+                    '</span>';
+            } else {
+                el('tagrep-shot-empty').innerHTML =
+                    '<span style="font-size:48px;display:block;margin-bottom:12px;">\ud83d\udcf7</span>' +
+                    'No screenshots captured within 90 seconds of this event.';
+            }
+            return;
+        }
+
+        var shot = currentShots[currentShotIdx];
+        var d = new Date(shot.time * 1000);
+        var tStr = (shot.source === 'screen' ? 'Screen capture' : 'Webcam') + ' at ' + d.toLocaleTimeString([], {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+        var contextLine = '';
+        if (currentActiveCat && currentActiveCat.source === 'event' && currentAttempt) {
+            var evTimes = currentAttempt.events
+                .filter(function(e) {return e.type === currentActiveCat.event_type;})
+                .map(function(e) {return e.time;});
+            if (evTimes.length) {
+                var nearest = evTimes.reduce(function(best, t) {
+                    return Math.abs(t - shot.time) < Math.abs(best - shot.time) ? t : best;
+                }, evTimes[0]);
+                var diffSec = Math.round(shot.time - nearest);
+                var diffStr = diffSec === 0 ? 'at event time' :
+                    diffSec > 0 ? diffSec + 's after event' :
+                    Math.abs(diffSec) + 's before event';
+                var evD = new Date(nearest * 1000);
+                contextLine = ' \u2014 Event at ' + evD.toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }) + ' (' + diffStr + ')';
+            }
+        }
+
+        el('tagrep-shot-img').src = shot.url;
+        el('tagrep-shot-time').textContent = tStr + contextLine;
+        el('tagrep-shot-empty').style.display = 'none';
+        el('tagrep-shot-content').style.display = '';
+        el('tagrep-shot-counter').textContent = (currentShotIdx + 1) + ' / ' + currentShots.length;
+        el('tagrep-shot-nav').style.display = currentShots.length > 1 ? '' : 'none';
+    }
+
+    /**
+     * Advance the screenshot viewer by one step in the given direction.
+     *
+     * @param {number} dir +1 for next, -1 for previous.
+     */
+    function tagRepShotStep(dir) {
+        if (!currentShots.length) {
+            return;
+        }
+        currentShotIdx = (currentShotIdx + dir + currentShots.length) % currentShots.length;
+        renderShot();
+    }
+
+    /**
+     * Set or clear the "valid override" flag for an attempt via AJAX.
+     *
+     * @param {number} uid       User ID.
+     * @param {number} attemptId Attempt ID.
+     * @param {number} override  1 to mark valid, 0 to clear override.
+     */
+    function tagRepSetOverride(uid, attemptId, override) {
+        var msg = override ?
+            'Mark this attempt as Valid? This overrides the automated risk assessment.' :
+            'Clear the Valid override? Automated risk assessment will apply again.';
+        if (!confirm(msg)) {
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('attemptid', attemptId);
+        fd.append('override', override ? 1 : 0);
+        fd.append('sesskey', CFG2.sesskey);
+
+        fetch(CFG2.setOverrideUrl, {method: 'POST', body: fd, credentials: 'same-origin'})
+            .then(function(r) {return r.json();})
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    DATA.forEach(function(s) {
+                        if (s.userid === uid) {
+                            s.attempts.forEach(function(a) {
+                                if (a.id === attemptId) {
+                                    a.override_valid = !!override;
+                                }
+                            });
+                        }
+                    });
+                    renderStudentList(DATA);
+                    if (currentStudent && currentStudent.userid === uid) {
+                        renderSessions(currentStudent);
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'unknown'));
+                }
+            })
+            .catch(function() {alert('Network error saving override.');});
+    }
+
+    /**
+     * Delete all screenshots for an attempt via AJAX and update local state.
+     *
+     * @param {number} uid       User ID.
+     * @param {number} attemptId Attempt ID.
+     */
+    function tagRepDeleteScreenshots(uid, attemptId) {
+        if (!confirm('Permanently delete all webcam screenshots for this attempt?')) {
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('attemptid', attemptId);
+        fd.append('sesskey', CFG2.sesskey);
+
+        fetch(CFG2.deleteShotsUrl, {method: 'POST', body: fd, credentials: 'same-origin'})
+            .then(function(r) {return r.json();})
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    DATA.forEach(function(s) {
+                        if (s.userid === uid) {
+                            s.attempts.forEach(function(a) {
+                                if (a.id === attemptId) {
+                                    a.screenshots = [];
+                                }
+                            });
+                        }
+                    });
+                    if (currentStudent && currentStudent.userid === uid) {
+                        renderSessions(currentStudent);
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'unknown'));
+                }
+            })
+            .catch(function() {alert('Network error deleting screenshots.');});
+    }
+
+    /**
+     * Delete all logged events for an attempt via AJAX and reset its risk state.
+     *
+     * @param {number} uid       User ID.
+     * @param {number} attemptId Attempt ID.
+     */
+    function tagRepDeleteEvents(uid, attemptId) {
+        if (!confirm(
+            'Permanently delete all logged events for this attempt? This will also clear the risk flags.'
+        )) {
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('attemptid', attemptId);
+        fd.append('sesskey', CFG2.sesskey);
+
+        fetch(CFG2.deleteEventsUrl, {method: 'POST', body: fd, credentials: 'same-origin'})
+            .then(function(r) {return r.json();})
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    DATA.forEach(function(s) {
+                        if (s.userid === uid) {
+                            s.attempts.forEach(function(a) {
+                                if (a.id === attemptId) {
+                                    a.events = [];
+                                    a.risk_score = 0;
+                                    a.risk_level = 'valid';
+                                }
+                            });
+                        }
+                    });
+                    renderStudentList(DATA);
+                    if (currentStudent && currentStudent.userid === uid) {
+                        renderSessions(currentStudent);
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'unknown'));
+                }
+            })
+            .catch(function() {alert('Network error deleting events.');});
+    }
+
+    return {
+        /**
+         * Initialise the report UI with server-provided student data and action URLs.
+         *
+         * @param {Array}  data Student/attempt data array.
+         * @param {Object} cfg  Action URLs and sesskey: setOverrideUrl, deleteShotsUrl,
+         *                      deleteEventsUrl, deleteScanBase, sesskey.
+         */
+        init: function(data, cfg) {
+            // Student data may be passed inline or embedded in a <script id="tagrep-data"> tag
+            // (the latter avoids Moodle's 1024-char js_call_amd argument limit).
+            if (data === null || data === undefined) {
+                var el = document.getElementById('tagrep-data');
+                data = el ? JSON.parse(el.textContent) : [];
+            }
+            DATA = data;
+            CFG2 = cfg;
+
+            // Expose functions needed by inline onclick handlers in the HTML.
+            window.tagRepNav = tagRepNav;
+            window.tagRepSearch = tagRepSearch;
+            window.tagRepOpenStudent = tagRepOpenStudent;
+            window.tagRepOpenFlags = tagRepOpenFlags;
+            window.tagRepSelectCat = tagRepSelectCat;
+            window.tagRepShotStep = tagRepShotStep;
+            window.tagRepSetOverride = tagRepSetOverride;
+            window.tagRepDeleteScreenshots = tagRepDeleteScreenshots;
+            window.tagRepDeleteEvents = tagRepDeleteEvents;
+
+            renderStudentList(DATA);
+        }
+    };
+});

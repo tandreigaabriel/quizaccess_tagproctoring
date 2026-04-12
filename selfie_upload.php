@@ -25,23 +25,25 @@
 require_once(__DIR__ . '/../../../../config.php');
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/lib.php');
+
+ob_start();
 header('Content-Type: application/json');
 
 try {
     require_login();
     require_sesskey();
 
-    $cmid = required_param('quizid', PARAM_INT); // Receives CM id, same convention as upload.php.
+    $quizid = required_param('quizid', PARAM_INT);
 
     global $DB, $USER;
 
-    $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
-    $quizid = $cm->instance;
+    $cm = get_coursemodule_from_instance('quiz', $quizid, 0, false, MUST_EXIST);
     $context = context_module::instance($cm->id, MUST_EXIST);
+    require_capability('mod/quiz:attempt', $context);
 
     if (empty($_FILES['selfie']) || !is_uploaded_file($_FILES['selfie']['tmp_name'])) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'No selfie file received']);
+        echo json_encode(['status' => 'error', 'message' => get_string('error_no_selfie', 'quizaccess_tagproctoring')]);
         exit;
     }
 

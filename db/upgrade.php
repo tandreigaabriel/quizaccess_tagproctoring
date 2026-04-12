@@ -39,5 +39,27 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         upgrade_plugin_savepoint(true, 2026041100, 'quizaccess', 'tagproctoring');
     }
 
+    // 2026041200 - Add face_match_verified and face_match_distance to scan table.
+    if ($oldversion < 2026041200) {
+        $table = new xmldb_table('quizaccess_tagproctoring_scan');
+
+        $field1 = new xmldb_field(
+            'face_match_verified', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'scan_suspicious'
+        );
+        if (!$dbman->field_exists($table, $field1)) {
+            $dbman->add_field($table, $field1);
+        }
+
+        $field2 = new xmldb_field(
+            'face_match_distance', XMLDB_TYPE_NUMBER, '5', null, null, null, null, 'face_match_verified'
+        );
+        $field2->setDecimals(3);
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        upgrade_plugin_savepoint(true, 2026041200, 'quizaccess', 'tagproctoring');
+    }
+
     return true;
 }

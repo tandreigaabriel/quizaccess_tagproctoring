@@ -54,8 +54,8 @@ if (!data_submitted()) {
     ]));
 
     $PAGE->set_pagelayout('report');
-    $PAGE->set_title('Delete Scan Data');
-    $PAGE->set_heading('Delete Scan Data');
+    $PAGE->set_title(get_string('deletescan_title', 'quizaccess_tagproctoring'));
+    $PAGE->set_heading(get_string('deletescan_title', 'quizaccess_tagproctoring'));
 
     echo $OUTPUT->header();
 
@@ -63,15 +63,15 @@ if (!data_submitted()) {
 
     echo html_writer::tag(
         'h4',
-        'Delete scan data for ' . fullname($user) .
-        ' (Quiz: ' . format_string($cm->name) . ')?'
+        get_string('deletescan_heading', 'quizaccess_tagproctoring', [
+            'user' => fullname($user),
+            'quiz' => format_string($cm->name),
+        ])
     );
 
     echo html_writer::tag(
         'p',
-        'This will permanently delete the <strong>room scan video</strong>, ' .
-        '<strong>selfie photo</strong>, and <strong>ID photo</strong> for this student on this quiz. ' .
-        'The quiz attempt, screenshots, and event log are not affected.',
+        get_string('deletescan_description', 'quizaccess_tagproctoring'),
         ['class' => 'text-muted']
     );
 
@@ -90,11 +90,11 @@ if (!data_submitted()) {
 
     $form .= html_writer::tag(
         'button',
-        'Yes, delete scan data',
+        get_string('deletescan_confirm', 'quizaccess_tagproctoring'),
         ['type' => 'submit', 'class' => 'btn btn-danger me-2']
     );
 
-    $form .= html_writer::link($reporturl, 'Cancel', ['class' => 'btn btn-secondary']);
+    $form .= html_writer::link($reporturl, get_string('deletescan_cancel', 'quizaccess_tagproctoring'), ['class' => 'btn btn-secondary']);
 
     $form .= html_writer::end_tag('form');
 
@@ -134,7 +134,7 @@ if ($scan) {
 
 redirect(
     $reporturl,
-    'Scan data deleted.',
+    get_string('deletescan_success', 'quizaccess_tagproctoring'),
     3,
     \core\output\notification::NOTIFY_SUCCESS
 );

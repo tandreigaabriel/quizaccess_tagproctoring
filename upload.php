@@ -33,11 +33,11 @@ ob_start();
 
 header('Content-Type: application/json');
 
-$logdir = __DIR__ . '/logs';
+$logdir = $CFG->dataroot . '/quizaccess_tagproctoring/logs';
 $logfile = $logdir . '/upload.log';
 
 if (!is_dir($logdir)) {
-    mkdir($logdir, 0750, true);
+    make_writable_directory($logdir);
 }
 
 file_put_contents($logfile, date('[H:i:s] ') . "HIT\n", FILE_APPEND);
@@ -52,17 +52,18 @@ try {
         http_response_code(400);
         echo json_encode([
             'status' => 'error',
-            'message' => 'No video file received',
+            'message' => get_string('error_no_video', 'quizaccess_tagproctoring'),
         ]);
         exit;
     }
 
     global $DB, $USER;
 
-    $cm = get_coursemodule_from_id('quiz', $quizid, 0, false, MUST_EXIST);
-    $quizid = $cm->instance;
+    $cm = get_coursemodule_from_instance('quiz', $quizid, 0, false, MUST_EXIST);
+
 
     $context = context_module::instance($cm->id, MUST_EXIST);
+    require_capability('mod/quiz:attempt', $context);
     $fs = get_file_storage();
 
     $filename = 'roomscan_' . $quizid . '_' . $USER->id . '_' . time() . '.webm';
@@ -100,7 +101,9 @@ try {
     ];
 
     // AI scan parsing.
-    $rawobjects = optional_param('scan_objects', '{}', PARAM_RAW);
+    // JSON payload — PARAM_TEXT strips control characters/null bytes while preserving valid JSON.
+    // The decoded value is further validated below with json_decode + is_array.
+    $rawobjects = optional_param('scan_objects', '{}', PARAM_TEXT);
     $scanobjects = '';
     $scansuspicious = 0;
 
@@ -108,6 +111,11 @@ try {
 
     if (is_array($decoded) && !empty($decoded)) {
         $scanobjects = json_encode($decoded);
+
+        // Minimum number of detection intervals (each ~1.5 s) an object must appear
+        // in before being flagged as suspicious. Requiring at least 3 (~4.5 s of
+        // presence) eliminates brief false positives from momentary misclassification.
+        $minthreshold = 3;
 
         $flaggedclasses = [
             'cell phone',
@@ -118,10 +126,11 @@ try {
             'face_turned',
         ];
 
+        $flaggedfound = [];
         foreach ($flaggedclasses as $cls) {
-            if (!empty($decoded[$cls])) {
+            if (!empty($decoded[$cls]) && (int)$decoded[$cls] >= $minthreshold) {
+                $flaggedfound[] = $cls;
                 $scansuspicious = 1;
-                break;
             }
         }
     }
@@ -146,7 +155,11 @@ try {
 
     ob_end_clean();
 
-    echo json_encode(['status' => 'ok']);
+    echo json_encode([
+        'status' => 'ok',
+        'suspicious' => (bool) $scansuspicious,
+        'flagged' => $flaggedfound ?? [],
+    ]);
 } catch (Throwable $e) {
     ob_end_clean();
 

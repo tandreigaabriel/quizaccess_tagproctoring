@@ -27,6 +27,8 @@
                 <FIELD NAME="idphoto_filename" TYPE="char" LENGTH="255" NOTNULL="false"/>
                 <FIELD NAME="scan_objects" TYPE="text" NOTNULL="false"/>
                 <FIELD NAME="scan_suspicious" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="face_match_verified" TYPE="int" LENGTH="2" NOTNULL="false" COMMENT="1=match 0=mismatch -1=unknown"/>
+                <FIELD NAME="face_match_distance" TYPE="number" LENGTH="5" DECIMALS="3" NOTNULL="false" COMMENT="Euclidean distance between face descriptors (0.0–2.0)"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

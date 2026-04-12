@@ -42,13 +42,14 @@ try {
     $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
     $quizid = $cm->instance;
     $context = context_module::instance($cm->id, MUST_EXIST);
+    require_capability('mod/quiz:attempt', $context);
 
     // Validate attempt belongs to this user.
     $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid, 'userid' => $USER->id], '*', MUST_EXIST);
 
     if (empty($_FILES['screenshot']) || !is_uploaded_file($_FILES['screenshot']['tmp_name'])) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'No screenshot received']);
+        echo json_encode(['status' => 'error', 'message' => get_string('error_no_screenshot', 'quizaccess_tagproctoring')]);
         exit;
     }
 

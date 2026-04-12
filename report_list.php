@@ -88,6 +88,9 @@ class report_list extends table_sql {
         global $DB;
 
         [$fields, $from, $where, $params] = $this->build_sql_properties();
+        // $fields and $from are developer-defined SQL fragments (table/field names only).
+        // $where uses named placeholders; all values are passed via $params.
+        // phpcs:ignore moodle.DB.RawSQL.found
         $row = $DB->get_record_sql("SELECT $fields FROM $from WHERE $where", $params, IGNORE_MULTIPLE);
         if (empty($row)) {
             return;
@@ -175,33 +178,33 @@ class report_list extends table_sql {
         $score   = 0;
         $factors = [];
 
-        // Tally events
-        $eventCounts = [];
+        // Tally events.
+        $event_counts = [];
         foreach ($events as $e) {
-            $eventCounts[$e->eventtype] = ($eventCounts[$e->eventtype] ?? 0) + 1;
+            $event_counts[$e->eventtype] = ($event_counts[$e->eventtype] ?? 0) + 1;
         }
 
-        $highRisk = ['screenshare' => 50, 'multiplescreen' => 50];
-        $medRisk  = ['fullscreenexit' => 20, 'tabswitch' => 10,
-                     'visibilityhidden' => 10, 'copypaste' => 10, 'devtools' => 5];
+        $high_risk = ['screenshare' => 50, 'multiplescreen' => 50];
+        $med_risk  = ['fullscreenexit' => 20, 'tabswitch' => 10,
+                      'visibilityhidden' => 10, 'copypaste' => 10, 'devtools' => 5];
 
-        foreach ($highRisk as $type => $pts) {
-            if (!empty($eventCounts[$type])) {
+        foreach ($high_risk as $type => $pts) {
+            if (!empty($event_counts[$type])) {
                 $label = get_string_manager()->string_exists('event_' . $type, 'quizaccess_tagproctoring')
                     ? get_string('event_' . $type, 'quizaccess_tagproctoring') : $type;
                 $score += $pts;
                 $factors[] = '<span style="display:block;font-size:11px;color:#dc2626;">'
-                    . '&#9940; ' . $label . ' &times;' . $eventCounts[$type] . '</span>';
+                    . '&#9940; ' . $label . ' &times;' . $event_counts[$type] . '</span>';
             }
         }
-        foreach ($medRisk as $type => $pts) {
-            if (!empty($eventCounts[$type])) {
+        foreach ($med_risk as $type => $pts) {
+            if (!empty($event_counts[$type])) {
                 $label = get_string_manager()->string_exists('event_' . $type, 'quizaccess_tagproctoring')
                     ? get_string('event_' . $type, 'quizaccess_tagproctoring') : $type;
-                $contribution = min($pts * $eventCounts[$type], $pts * 3);
+                $contribution = min($pts * $event_counts[$type], $pts * 3);
                 $score += $contribution;
                 $factors[] = '<span style="display:block;font-size:11px;color:#d97706;">'
-                    . '&#9888; ' . $label . ' &times;' . $eventCounts[$type] . '</span>';
+                    . '&#9888; ' . $label . ' &times;' . $event_counts[$type] . '</span>';
             }
         }
 
@@ -270,9 +273,9 @@ class report_list extends table_sql {
         if (!empty($scan->scan_objects)) {
             $objects = @json_decode($scan->scan_objects, true);
             if (is_array($objects) && !empty($objects)) {
-                $dangerItems = ['cell phone', 'book', 'tablet', 'remote', 'extra_person'];
+                $danger_items = ['cell phone', 'book', 'tablet', 'remote', 'extra_person'];
                 foreach ($objects as $cls => $count) {
-                    $bg    = in_array($cls, $dangerItems) ? '#dc2626' : '#6b7280';
+                    $bg    = in_array($cls, $danger_items) ? '#dc2626' : '#6b7280';
                     $label = str_replace('_', ' ', $cls);
                     $out  .= '<span style="background:' . $bg . ';color:#fff;font-size:10px;'
                           . 'padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;">'

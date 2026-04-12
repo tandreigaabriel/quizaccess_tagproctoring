@@ -26,23 +26,23 @@
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/course/lib.php');
 
+ob_start();
 header('Content-Type: application/json');
 
 try {
     require_login();
     require_sesskey();
-    // Receives CM id, same convention as upload.php.
-    $cmid = required_param('quizid', PARAM_INT);
+    $quizid = required_param('quizid', PARAM_INT);
 
     global $DB, $USER;
 
-    $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
-    $quizid = $cm->instance;
+    $cm = get_coursemodule_from_instance('quiz', $quizid, 0, false, MUST_EXIST);
     $context = context_module::instance($cm->id, MUST_EXIST);
+    require_capability('mod/quiz:attempt', $context);
 
     if (empty($_FILES['idphoto']) || !is_uploaded_file($_FILES['idphoto']['tmp_name'])) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'No ID photo file received']);
+        echo json_encode(['status' => 'error', 'message' => get_string('error_no_idphoto', 'quizaccess_tagproctoring')]);
         exit;
     }
 
@@ -65,28 +65,50 @@ try {
 
     $fs->create_file_from_pathname($fileinfo, $_FILES['idphoto']['tmp_name']);
 
-    // Update or create scan record with ID photo filename.
+    // Face-match params sent by the JS client after client-side AI comparison.
+    // verified: 1=match, 0=mismatch, -1=unknown/no face detected.
+    $faceverified = optional_param('face_match_verified', null, PARAM_INT);
+    $facedistance = optional_param('face_match_distance', null, PARAM_FLOAT);
+
+    // Clamp/sanitise: keep -1 sentinel as NULL in DB; reject out-of-range values.
+    if ($facedistance !== null && $facedistance < 0) {
+        $facedistance = null;
+    }
+    if ($faceverified !== null && !in_array((int) $faceverified, [-1, 0, 1], true)) {
+        $faceverified = null;
+    }
+
+    // Update or create scan record with ID photo filename and face-match result.
     $existing = $DB->get_record('quizaccess_tagproctoring_scan', ['quizid' => $quizid, 'userid' => $USER->id]);
     if ($existing) {
-        $DB->update_record('quizaccess_tagproctoring_scan', (object) [
-            'id' => $existing->id,
-            'idphoto_filename' => $filename,
-        ]);
+        $update = (object) ['id' => $existing->id, 'idphoto_filename' => $filename];
+        if ($faceverified !== null) {
+            $update->face_match_verified = (int) $faceverified;
+            $update->face_match_distance = $facedistance;
+        }
+        $DB->update_record('quizaccess_tagproctoring_scan', $update);
     } else {
-        $DB->insert_record('quizaccess_tagproctoring_scan', (object) [
-            'quizid' => $quizid,
-            'userid' => $USER->id,
-            'attemptid' => 0,
-            'timecreated' => time(),
-            'filename' => '',
-            'selfie_filename' => '',
+        $record = (object) [
+            'quizid'           => $quizid,
+            'userid'           => $USER->id,
+            'attemptid'        => 0,
+            'timecreated'      => time(),
+            'filename'         => '',
+            'selfie_filename'  => '',
             'idphoto_filename' => $filename,
-        ]);
+        ];
+        if ($faceverified !== null) {
+            $record->face_match_verified = (int) $faceverified;
+            $record->face_match_distance = $facedistance;
+        }
+        $DB->insert_record('quizaccess_tagproctoring_scan', $record);
     }
 
 
+    ob_end_clean();
     echo json_encode(['status' => 'ok']);
 } catch (Throwable $e) {
+    ob_end_clean();
     http_response_code(500);
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }

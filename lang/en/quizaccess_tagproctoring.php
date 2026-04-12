@@ -101,3 +101,65 @@ $string['settings_screenshotinterval_desc'] = 'How often (in seconds) a webcam s
 
 $string['tagproctoring:viewreport'] = 'View TAG proctoring reports';
 $string['task_cleanup_files'] = 'TAG Proctoring: delete expired scan videos and screenshots';
+
+// Upload endpoints.
+$string['error_no_video'] = 'No video file received';
+$string['error_no_selfie'] = 'No selfie file received';
+$string['error_no_screenshot'] = 'No screenshot received';
+$string['error_no_idphoto'] = 'No ID photo file received';
+
+// Delete scan page.
+$string['deletescan_title'] = 'Delete Scan Data';
+$string['deletescan_heading'] = 'Delete scan data for {$a->user} (Quiz: {$a->quiz})?';
+$string['deletescan_description'] = 'This will permanently delete the room scan video, selfie photo, and ID photo for this student on this quiz. The quiz attempt, screenshots, and event log are not affected.';
+$string['deletescan_confirm'] = 'Yes, delete scan data';
+$string['deletescan_cancel'] = 'Cancel';
+$string['deletescan_success'] = 'Scan data deleted.';
+
+// Screenshots page.
+$string['screenshots_title'] = 'Screenshots — {$a}';
+$string['screenshots_inprogress'] = 'In progress';
+$string['screenshots_attemptinfo'] = 'Attempt started: {$a->started} | Finished: {$a->finished}';
+$string['screenshots_events_heading'] = 'Suspicious Events';
+$string['screenshots_col_time'] = 'Time';
+$string['screenshots_col_event'] = 'Event';
+$string['screenshots_col_detail'] = 'Detail';
+$string['screenshots_grid_heading'] = 'Webcam Screenshots ({$a})';
+$string['screenshots_none'] = 'No screenshots captured for this attempt.';
+
+// Report page.
+$string['report_no_attempts'] = 'No completed attempts found for this quiz.';
+
+// Rule link.
+$string['report_link_label'] = 'Proctoring Report';
+
+// Privacy API.
+$string['privacy:metadata:quizaccess_tagproctoring_scan'] = 'Stores room scan video filenames, selfie and ID photo filenames, and AI scan results for each student attempt.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:userid'] = 'The ID of the student who performed the room scan.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:quizid'] = 'The quiz this scan belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:attemptid'] = 'The quiz attempt this scan belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:timecreated'] = 'The time the scan record was created.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:filename'] = 'The filename of the room scan video.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:selfie_filename'] = 'The filename of the student selfie image.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:idphoto_filename'] = 'The filename of the student ID photo.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:scan_objects'] = 'JSON list of objects detected in the room scan by the AI.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:scan_suspicious'] = 'Whether the AI flagged this scan as suspicious.';
+
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots'] = 'Stores periodic webcam screenshots captured during a quiz attempt.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:userid'] = 'The ID of the student the screenshot belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:quizid'] = 'The quiz this screenshot belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:attemptid'] = 'The quiz attempt this screenshot belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:timecreated'] = 'The time the screenshot was captured.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:filename'] = 'The filename of the screenshot image.';
+
+$string['privacy:metadata:quizaccess_tagproctoring_events'] = 'Stores suspicious behavioural events (tab switches, copy/paste, DevTools, etc.) logged during a quiz attempt.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:userid'] = 'The ID of the student who triggered the event.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:quizid'] = 'The quiz this event belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:attemptid'] = 'The quiz attempt this event belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:timecreated'] = 'The time the event was logged.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:eventtype'] = 'The type of suspicious event detected.';
+$string['privacy:metadata:quizaccess_tagproctoring_events:detail'] = 'Additional detail about the event.';
+
+$string['privacy:path:scans'] = 'Room Scans';
+$string['privacy:path:screenshots'] = 'Screenshots';
+$string['privacy:path:events'] = 'Event Log';

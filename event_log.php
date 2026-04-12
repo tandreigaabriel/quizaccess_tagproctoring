@@ -41,6 +41,8 @@ try {
 
     $cm = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
     $quizid = $cm->instance;
+    $context = context_module::instance($cm->id, MUST_EXIST);
+    require_capability('mod/quiz:attempt', $context);
 
     // Validate attempt belongs to this user.
     $DB->get_record('quiz_attempts', [

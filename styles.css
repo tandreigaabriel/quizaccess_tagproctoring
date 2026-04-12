@@ -1,173 +1,371 @@
-/* TAGProctoring - premium UI */
+/**
+ * Styles for TAG Proctoring quiz access rule.
+ *
+ * @package    quizaccess_tagproctoring
+ * @copyright  2024 TAG
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 /* ═══════════════════════════════════════════════
-   WIZARD — shared wrapper
+   WIZARD — premium UI
 ═══════════════════════════════════════════════ */
-.tagwiz-wrap {
-  max-width: 980px;
-  margin: 0 auto 24px auto;
-  font-size: 14px;
+
+/* Shared brand tokens */
+:root {
+  --tp-purple:     #6d28d9;
+  --tp-purple-dk:  #4c1d95;
+  --tp-purple-lt:  rgba(109,40,217,.08);
+  --tp-purple-mid: rgba(109,40,217,.18);
+  --tp-green:      #16a34a;
+  --tp-green-lt:   rgba(22,163,74,.10);
+  --tp-green-mid:  rgba(22,163,74,.28);
+  --tp-border:     rgba(0,0,0,.07);
+  --tp-shadow:     0 12px 32px rgba(0,0,0,.09), 0 2px 8px rgba(0,0,0,.05);
+  --tp-radius:     16px;
 }
 
-/* ── Progress bar ── */
+/* ── Wrapper ── */
+.tagwiz-wrap {
+  max-width: 1000px;
+  margin: 0 auto 28px auto;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Hero banner ── */
+.tagwiz-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, var(--tp-purple-dk) 0%, var(--tp-purple) 100%);
+  color: #fff;
+  border-radius: var(--tp-radius) var(--tp-radius) 0 0;
+  padding: 20px 24px;
+  margin-bottom: 0;
+}
+.tagwiz-hero-icon {
+  font-size: 36px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+}
+.tagwiz-hero-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+.tagwiz-hero-sub {
+  font-size: 13px;
+  opacity: .82;
+  margin-top: 2px;
+}
+
+/* ── Progress stepper ── */
 .tagwiz-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px 0 14px;
+  padding: 20px 20px 16px;
   gap: 0;
+  background: #fff;
+  border-left: 1px solid var(--tp-border);
+  border-right: 1px solid var(--tp-border);
 }
 
 .tagwiz-ind {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  min-width: 72px;
+  gap: 6px;
+  min-width: 78px;
 }
 
 .tagwiz-ind-circle {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #999;
-  font-weight: 700;
+  background: #f1f1f5;
+  color: #aaa;
+  font-weight: 800;
   font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .25s, color .25s;
+  transition: background .3s, color .3s, box-shadow .3s;
   position: relative;
   z-index: 1;
+  border: 2px solid #e0e0e0;
 }
+
+/* Show number by default; icon hidden */
+.tagwiz-ind-num  { display: block; }
+.tagwiz-ind-icon { display: none; font-style: normal; }
 
 .tagwiz-ind-label {
   font-size: 11px;
-  color: #aaa;
-  font-weight: 500;
-  transition: color .25s;
+  color: #b0b0b8;
+  font-weight: 600;
+  transition: color .3s;
   white-space: nowrap;
+  letter-spacing: .2px;
 }
 
+/* Active step */
 .tagwiz-ind--active .tagwiz-ind-circle {
-  background: #7e2a8e;
+  background: linear-gradient(135deg, var(--tp-purple) 0%, var(--tp-purple-dk) 100%);
   color: #fff;
-  box-shadow: 0 0 0 4px rgba(126,42,142,.18);
+  border-color: transparent;
+  box-shadow: 0 0 0 4px var(--tp-purple-mid), 0 4px 12px rgba(109,40,217,.35);
 }
-.tagwiz-ind--active .tagwiz-ind-label { color: #7e2a8e; font-weight: 700; }
+.tagwiz-ind--active .tagwiz-ind-label { color: var(--tp-purple); font-weight: 800; }
 
+/* Done step */
 .tagwiz-ind--done .tagwiz-ind-circle {
-  background: #2ecc71;
-  color: #fff;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(22,163,74,.28);
 }
-.tagwiz-ind--done .tagwiz-ind-circle::after {
-  content: '✓';
-  position: absolute;
-  font-size: 16px;
-}
-.tagwiz-ind--done .tagwiz-ind-circle { font-size: 0; } /* hide number when done */
-.tagwiz-ind--done .tagwiz-ind-label { color: #2ecc71; }
+.tagwiz-ind--done .tagwiz-ind-num  { display: none; }
+.tagwiz-ind--done .tagwiz-ind-icon { display: block; font-size: 18px; }
+.tagwiz-ind--done .tagwiz-ind-icon::before { content: '✓'; color: #fff; font-style: normal; }
+/* Override the template emoji with a checkmark */
+.tagwiz-ind--done .tagwiz-ind-circle .tagwiz-ind-icon { font-size: 0; }
+.tagwiz-ind--done .tagwiz-ind-circle .tagwiz-ind-icon::before { font-size: 18px; }
+.tagwiz-ind--done .tagwiz-ind-label { color: var(--tp-green); }
 
+/* Connector line */
 .tagwiz-connector {
   flex: 1;
   height: 3px;
-  background: #e0e0e0;
-  margin-bottom: 18px; /* align with circle centre */
-  transition: background .3s;
-  max-width: 60px;
+  background: #e8e8f0;
+  margin-bottom: 24px;
+  transition: background .4s;
+  max-width: 56px;
+  border-radius: 2px;
 }
-.tagwiz-connector--done { background: #2ecc71; }
+.tagwiz-connector--done {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
 
 /* ── Card shell ── */
 .tagwiz-card {
   background: #fff;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  border: 1px solid var(--tp-border);
+  border-radius: 0 0 var(--tp-radius) var(--tp-radius);
+  box-shadow: var(--tp-shadow);
   overflow: hidden;
+}
+
+/* Steps 1-4 are stand-alone cards with full rounded corners */
+#tagwiz-step-1, #tagwiz-step-2, #tagwiz-step-3, #tagwiz-step-4 {
+  border-radius: var(--tp-radius);
+  margin-top: 0;
+}
+
+/* Step 0 card sits directly under the progress bar (no top radius) */
+#tagwiz-step-0 {
+  border-radius: 0 0 var(--tp-radius) var(--tp-radius);
 }
 
 .tagwiz-card-header {
   display: flex;
   gap: 14px;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  background: linear-gradient(180deg, rgba(126,42,142,.07), rgba(255,255,255,0));
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--tp-border);
+  background: linear-gradient(180deg, var(--tp-purple-lt) 0%, transparent 100%);
 }
 
+/* Step badge icons */
 .tagwiz-badge {
-  width: 44px; height: 44px;
+  width: 48px; height: 48px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 12px;
-  background: #7e2a8e;
-  color: #fff;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: .5px;
+  border-radius: 14px;
+  font-size: 22px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
 }
+.tagwiz-badge--rules  { background: linear-gradient(135deg, #7c3aed, #4c1d95); }
+.tagwiz-badge--scan   { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+.tagwiz-badge--selfie { background: linear-gradient(135deg, #f59e0b, #b45309); }
+.tagwiz-badge--id     { background: linear-gradient(135deg, #10b981, #065f46); }
+.tagwiz-badge--screen { background: linear-gradient(135deg, #6366f1, #3730a3); }
 
 .tagwiz-title {
   margin: 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -.2px;
 }
 
 .tagwiz-subtitle {
-  margin: 2px 0 0;
-  color: rgba(0,0,0,.6);
+  margin: 3px 0 0;
+  color: #6b7280;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .tagwiz-card-body {
-  padding: 20px;
+  padding: 22px;
 }
 
 /* ── Rules step ── */
 .tagwiz-rules-box {
-  background: rgba(126,42,142,.04);
-  border: 1px solid rgba(126,42,142,.15);
-  border-radius: 10px;
-  padding: 16px 18px;
-  margin-bottom: 16px;
+  background: var(--tp-purple-lt);
+  border: 1px solid rgba(109,40,217,.16);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
 }
 
 .tagwiz-rules-intro {
-  margin: 0 0 10px;
-  font-size: 13px;
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.6;
 }
 
 .tagwiz-rules-list {
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
+  list-style: none;
   font-size: 13.5px;
-  line-height: 1.7;
-  color: rgba(0,0,0,.8);
+  line-height: 1;
+  color: #1f2937;
 }
 
+.tagwiz-rules-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(109,40,217,.08);
+  line-height: 1.5;
+}
+.tagwiz-rules-list li:last-child { border-bottom: none; }
+
+.tagwiz-rule-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Consent checkbox */
 .tagwiz-agree-row {
-  margin: 14px 0 18px;
+  margin: 16px 0 20px;
 }
 
 .tagwiz-agree-label {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: flex-start;
   cursor: pointer;
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
+  color: #1f2937;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color .2s, background .2s;
+}
+.tagwiz-agree-label:hover {
+  border-color: var(--tp-purple);
+  background: var(--tp-purple-lt);
+}
+.tagwiz-agree-checkbox-wrap { flex-shrink: 0; margin-top: 2px; }
+.tagwiz-agree-checkbox-wrap input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--tp-purple); }
+
+/* ── Buttons ── */
+.tagwiz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s, transform .1s, box-shadow .15s;
+  letter-spacing: .1px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tagwiz-btn:hover   { opacity: .9; transform: translateY(-1px); }
+.tagwiz-btn:active  { transform: translateY(0); }
+.tagwiz-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.tagwiz-btn--primary {
+  background: linear-gradient(135deg, var(--tp-purple) 0%, var(--tp-purple-dk) 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(109,40,217,.35);
+}
+.tagwiz-btn--next {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(22,163,74,.30);
+}
+.tagwiz-btn--record {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(14,165,233,.30);
+}
+.tagwiz-btn--capture {
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(245,158,11,.30);
+}
+.tagwiz-btn--retake {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: none;
+}
+.tagwiz-btn--share {
+  background: linear-gradient(135deg, #6366f1 0%, #3730a3 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(99,102,241,.30);
+  padding: 11px 28px;
+  font-size: 15px;
+}
+.tagwiz-btn--danger {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(220,38,38,.30);
+}
+.tagwiz-btn--start {
+  background: linear-gradient(135deg, var(--tp-purple) 0%, var(--tp-purple-dk) 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(109,40,217,.40);
+  padding: 13px 32px;
+  font-size: 16px;
+  border-radius: 11px;
+  animation: tagwizPulseBtn 2.4s ease-in-out infinite;
 }
 
-.tagwiz-agree-label input { margin-top: 3px; flex-shrink: 0; }
+@keyframes tagwizPulseBtn {
+  0%, 100% { box-shadow: 0 4px 14px rgba(109,40,217,.40); }
+  50%       { box-shadow: 0 4px 22px rgba(109,40,217,.65); }
+}
+
+/* ── Actions row ── */
+.tagwiz-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--tp-border);
+}
 
 /* ── Grid layout (camera + info) ── */
 .tagwiz-grid {
   display: grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 18px;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 20px;
   margin-bottom: 16px;
 }
 
@@ -179,11 +377,12 @@
 /* ── Camera / video ── */
 .tagwiz-video-wrap {
   position: relative;
-  background: #000;
-  border-radius: 12px;
+  background: #0a0a0f;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,.12);
+  border: 2px solid rgba(109,40,217,.2);
   aspect-ratio: 4/3;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
 }
 
 .tagwiz-video-wrap video {
@@ -193,11 +392,63 @@
   display: block;
 }
 
+/* Face-oval guide for selfie */
+.tagwiz-selfie-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.tagwiz-selfie-guide::before {
+  content: '';
+  width: 42%;
+  aspect-ratio: 3/4;
+  border: 2.5px dashed rgba(255,255,255,.55);
+  border-radius: 50%;
+  animation: tagwizBreath 2.8s ease-in-out infinite;
+}
+
+@keyframes tagwizBreath {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  50%       { opacity: .9;  transform: scale(1.03); }
+}
+
+/* Rectangle guide for ID card */
+.tagwiz-id-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.tagwiz-id-guide::before {
+  content: '';
+  width: 68%;
+  aspect-ratio: 85.6/54;
+  border: 2.5px dashed rgba(34,197,94,.70);
+  border-radius: 8px;
+  animation: tagwizBreath 2.8s ease-in-out infinite;
+}
+.tagwiz-id-guide-label {
+  position: absolute;
+  bottom: calc(50% - 54px / 85.6 * 68% / 2 - 26px);
+  font-size: 11px;
+  color: rgba(34,197,94,.90);
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+
+/* Recording overlay */
 .tagwiz-overlay {
   position: absolute;
   inset: auto 0 0 0;
-  padding: 12px;
-  background: linear-gradient(transparent, rgba(0,0,0,.7));
+  padding: 14px;
+  background: linear-gradient(transparent, rgba(0,0,0,.78));
   color: #fff;
 }
 
@@ -211,11 +462,13 @@
 
 .tagwiz-overlay-timer {
   font-weight: 800;
-  font-size: 13px;
-  min-width: 70px;
+  font-size: 14px;
+  min-width: 76px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
+/* REC dot */
 .tagwiz-dot {
   width: 10px; height: 10px;
   border-radius: 50%;
@@ -223,95 +476,153 @@
   opacity: 0;
   flex-shrink: 0;
 }
-
 .tagwiz-dot.is-recording {
   opacity: 1;
   animation: tagwizPulse 1.2s infinite;
 }
-
 @keyframes tagwizPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255,77,79,.55); }
-  70%  { box-shadow: 0 0 0 8px rgba(255,77,79,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(255,77,79,.6); }
+  70%  { box-shadow: 0 0 0 9px rgba(255,77,79,0); }
   100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
 }
 
+/* ── Camera action row ── */
 .tagwiz-cam-actions {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 
-/* ── Preview image (selfie / ID) ── */
+/* ── Preview image ── */
 .tagwiz-preview-wrap {
   margin-top: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 2px solid #2ecc71;
+  border: 2px solid #16a34a;
+  position: relative;
 }
-
-.tagwiz-preview-img {
-  width: 100%;
-  display: block;
+.tagwiz-preview-img { width: 100%; display: block; }
+.tagwiz-preview-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .3px;
 }
 
 /* ── Info column ── */
+.tagwiz-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .tagwiz-section-title {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 10px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .4px;
-  color: rgba(0,0,0,.65);
+  letter-spacing: .6px;
+  color: #6b7280;
 }
 
 .tagwiz-list {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   font-size: 13px;
-  color: rgba(0,0,0,.78);
-  line-height: 1.75;
+  color: #374151;
+  line-height: 1;
 }
-
-/* ── Actions row ── */
-.tagwiz-actions {
+.tagwiz-list li {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(0,0,0,.06);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f3f4f6;
+  line-height: 1.5;
+}
+.tagwiz-list li::before {
+  content: '›';
+  color: var(--tp-purple);
+  font-weight: 900;
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: -1px;
+}
+.tagwiz-list li:last-child { border-bottom: none; }
+
+.tagwiz-id-tip {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(16,185,129,.07);
+  border: 1px solid rgba(16,185,129,.22);
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: #065f46;
+  line-height: 1.5;
 }
 
 /* ── Status / success messages ── */
 .tagwiz-success {
-  margin-top: 10px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  background: rgba(46,204,113,.1);
-  border: 1px solid rgba(46,204,113,.3);
-  color: #1a5e35;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--tp-green-lt);
+  border: 1px solid var(--tp-green-mid);
+  color: #14532d;
   font-weight: 600;
   font-size: 13px;
 }
+.tagwiz-success--center { text-align: center; }
 
 .tagwiz-status-msg {
   font-size: 13px;
-  margin-top: 6px;
-  min-height: 20px;
+  margin-top: 8px;
+  min-height: 22px;
+  border-radius: 8px;
+  transition: all .2s;
 }
 
 /* ── Screen share step ── */
 .tagwiz-ss-center {
   text-align: center;
-  padding: 24px 0 8px;
+  padding: 32px 20px 16px;
 }
 
-.tagwiz-ss-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
-  display: block;
-  line-height: 1;
+.tagwiz-ss-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(55,48,163,.18));
+  border-radius: 24px;
+  margin-bottom: 20px;
+  border: 1.5px solid rgba(99,102,241,.2);
+}
+.tagwiz-ss-icon { font-size: 44px; line-height: 1; }
+
+.tagwiz-ss-desc {
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.65;
+  max-width: 520px;
+  margin: 0 auto 20px;
+}
+
+.tagwiz-ss-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
 }
 
 
