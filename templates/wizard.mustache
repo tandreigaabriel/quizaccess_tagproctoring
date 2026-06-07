@@ -20,7 +20,7 @@
     Pre-exam proctoring wizard — rules, room scan, selfie, ID photo, screen share.
 
     @package    quizaccess_tagproctoring
-    @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+    @copyright  2026 Andrei Toma <https://www.tandreig.com>
     @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 }}
 <div class="tagwiz-wrap" id="tagwiz-wrap">
@@ -94,7 +94,7 @@
     </div>
     <div class="tagwiz-card-body">
 
-      <div class="tagwiz-rules-box">
+      <div class="tagwiz-rules-box" id="tagwiz-rules-scroll">
         <p class="tagwiz-rules-intro">
           This exam is proctored. Your webcam, screen activity, and environment will be recorded and reviewed by your invigilator.
         </p>
@@ -106,15 +106,22 @@
           <li><span class="tagwiz-rule-icon">&#x1f5a5;&#xfe0f;</span> You must share your <strong>entire screen</strong> (not a tab or window) when prompted.</li>
           <li><span class="tagwiz-rule-icon">&#x26a0;&#xfe0f;</span> Any suspicious behaviour will be flagged and reviewed.</li>
         </ul>
+        <div class="tagwiz-rules-warning">
+          &#x26a0;&#xfe0f; <strong>Important:</strong> Leaving fullscreen, switching tabs, stopping screen sharing, or using additional monitors will be recorded as violations and reviewed by your invigilator.
+        </div>
       </div>
+      <div class="tagwiz-scroll-hint" id="tagwiz-rules-scroll-hint">&#x2193; Scroll down to read all rules</div>
 
       <div class="tagwiz-agree-row">
         <label class="tagwiz-agree-label">
           <span class="tagwiz-agree-checkbox-wrap">
-            <input type="checkbox" id="tagwiz-rules-agree">
+            <input type="checkbox" id="tagwiz-rules-agree" disabled>
           </span>
           I have read, understood, and agree to the proctoring rules above.
         </label>
+      </div>
+      <div class="tagwiz-rules-confirmed" id="tagwiz-rules-confirmed" style="display:none">
+        &#x2705; Rules accepted
       </div>
 
       <div class="tagwiz-actions">
@@ -197,6 +204,7 @@
             {{! Canvas renders blurred background + clear oval — updated every animation frame }}
             <canvas id="tagwiz-selfie-canvas" style="display:block;width:100%;height:100%;"></canvas>
             <div class="tagwiz-selfie-guide"></div>
+            <div id="tagwiz-selfie-countdown" class="tagwiz-selfie-countdown" style="display:none">3</div>
           </div>
           <div id="tagwiz-selfie-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
             <img id="tagwiz-selfie-preview" class="tagwiz-preview-img" src="" alt="Selfie preview">
@@ -221,10 +229,11 @@
           <p class="tagwiz-section-title">&#x1f4cb; Instructions</p>
           <ul class="tagwiz-list">
             <li>Look <strong>directly</strong> at the camera.</li>
-            <li>Ensure your face is well-lit and clearly visible.</li>
+            <li>Ensure your face is <strong>well-lit</strong> and clearly visible.</li>
             <li>Remove glasses or hats that obscure your face.</li>
-            <li>Your entire face must be inside the frame guide.</li>
-            <li>Click <em>Take Photo</em>, then <em>Next</em> when satisfied.</li>
+            <li>Centre your face in the oval &mdash; the border turns <strong>green</strong> when aligned.</li>
+            <li>Your photo <strong>captures automatically</strong> after 2 seconds of stability.</li>
+            <li>Or click <em>Take Photo</em> to capture manually at any time.</li>
           </ul>
         </div>
 
@@ -247,8 +256,9 @@
         <div>
           <div class="tagwiz-video-wrap tagwiz-video-wrap--id">
             <video id="tagwiz-id-video" autoplay muted playsinline></video>
-            <div class="tagwiz-id-guide">
-              <span class="tagwiz-id-guide-label">Place ID here</span>
+            <div id="tagwiz-id-countdown" class="tagwiz-id-countdown" style="display:none">3</div>
+            <div id="tagwiz-id-guide" class="tagwiz-id-guide">
+              <span id="tagwiz-id-guide-label" class="tagwiz-id-guide-label">Place your ID inside the green box</span>
             </div>
           </div>
           <div id="tagwiz-id-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
@@ -299,28 +309,67 @@
     <div class="tagwiz-card-body">
       <div class="tagwiz-ss-center">
 
-        <div class="tagwiz-ss-icon-wrap">
-          <span class="tagwiz-ss-icon">&#x1f5a5;&#xfe0f;</span>
+        {{! Before-share instruction panel }}
+        <div id="tagwiz-ss-before" class="tagwiz-ss-before">
+          <p class="tagwiz-ss-before-title">&#x26a0;&#xfe0f; When the browser dialog opens, you <strong>must</strong> select:</p>
+          <div class="tagwiz-ss-guide">
+            <div class="tagwiz-ss-guide-step">
+              <span class="tagwiz-ss-guide-num">1</span>
+              <div class="tagwiz-ss-guide-text">
+                Click the <strong>&#x201c;Entire Screen&#x201d;</strong> tab
+                <span class="tagwiz-ss-guide-warn">Not &#x201c;Window&#x201d; or &#x201c;Tab&#x201d;</span>
+              </div>
+            </div>
+            <div class="tagwiz-ss-guide-step">
+              <span class="tagwiz-ss-guide-num">2</span>
+              <div class="tagwiz-ss-guide-text">Select your monitor from the list</div>
+            </div>
+            <div class="tagwiz-ss-guide-step">
+              <span class="tagwiz-ss-guide-num">3</span>
+              <div class="tagwiz-ss-guide-text">Click <strong>&#x201c;Share&#x201d;</strong></div>
+            </div>
+          </div>
         </div>
 
-        <p class="tagwiz-ss-desc">
-          When prompted, select <strong>Entire Screen</strong> &mdash; not a browser tab or window.<br>
-          This confirms no extra applications are running during your exam.
-        </p>
+        {{! Multi-monitor warning panel (hidden until detected) }}
+        <div id="tagwiz-ss-multimon" class="tagwiz-ss-multimon" style="display:none">
+          <div class="tagwiz-ss-multimon-header">
+            <span class="tagwiz-ss-multimon-icon">&#x1f5a5;&#xfe0f;</span>
+            <strong>Additional Monitor Detected</strong>
+          </div>
+          <p class="tagwiz-ss-multimon-desc">
+            Your system has more than one display connected. To continue, you must:
+          </p>
+          <ul class="tagwiz-ss-multimon-list">
+            <li>Disconnect your secondary monitor, <strong>or</strong></li>
+            <li>Set your displays to <strong>Mirror / Duplicate</strong> mode</li>
+          </ul>
+          <button type="button" class="tagwiz-btn tagwiz-btn--recheck" id="tagwiz-ss-recheck">
+            &#x21ba; Re-check Setup
+          </button>
+        </div>
 
         <p id="tagwiz-ss-status" class="tagwiz-status-msg"></p>
 
-        <div id="tagwiz-ss-success" style="display:none" class="tagwiz-success tagwiz-success--center">
-          &#x2705; Screen sharing verified! You may now start your exam.
+        {{! B6 — Exam Ready Checklist }}
+        <div id="tagwiz-checklist" class="tagwiz-checklist" style="display:none">
+          <div class="tagwiz-checklist-title">&#x1f512; All checks passed &mdash; you are ready to begin</div>
+          <ul class="tagwiz-checklist-list">
+            <li><span class="tagwiz-chk-mark">&#x2713;</span> Rules accepted</li>
+            <li id="tagwiz-chk-scan"><span class="tagwiz-chk-mark">&#x2713;</span> Room scan completed</li>
+            <li><span class="tagwiz-chk-mark">&#x2713;</span> Identity selfie verified</li>
+            <li><span class="tagwiz-chk-mark">&#x2713;</span> Photo ID captured</li>
+            <li><span class="tagwiz-chk-mark">&#x2713;</span> Screen sharing confirmed</li>
+            <li><span class="tagwiz-chk-mark">&#x2713;</span> Fullscreen will be enforced on start</li>
+          </ul>
+          <button type="button" class="tagwiz-btn tagwiz-btn--start" id="tagwiz-start-quiz">
+            &#x1f512; Start Secure Exam
+          </button>
         </div>
 
         <div class="tagwiz-ss-actions">
           <button type="button" class="tagwiz-btn tagwiz-btn--share" id="tagwiz-ss-share">
             &#x1f4e4; Share Screen
-          </button>
-          <button type="button" class="tagwiz-btn tagwiz-btn--start" id="tagwiz-start-quiz"
-            style="display:none">
-            &#x1f512; Start Exam
           </button>
         </div>
 

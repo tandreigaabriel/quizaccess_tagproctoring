@@ -18,7 +18,7 @@
  * Room scan video upload endpoint for TAG Proctoring.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -115,15 +115,12 @@ try {
         // Minimum number of detection intervals (each ~1.5 s) an object must appear
         // in before being flagged as suspicious. Requiring at least 3 (~4.5 s of
         // presence) eliminates brief false positives from momentary misclassification.
-        $minthreshold = 3;
+        $minthreshold = (int)(get_config('quizaccess_tagproctoring', 'ai_min_detections') ?: 3);
 
-        $flaggedclasses = [
-            'cell phone',
-            'book',
-            'tablet',
-            'remote',
-            'extra_person',
-        ];
+        $rawflagged = get_config('quizaccess_tagproctoring', 'ai_flagged_objects');
+        $flaggedclasses = $rawflagged
+            ? array_values(array_filter(array_map('trim', explode("\n", $rawflagged))))
+            : ['cell phone', 'book', 'tablet', 'remote', 'extra_person', 'laptop'];
 
         $flaggedfound = [];
         foreach ($flaggedclasses as $cls) {

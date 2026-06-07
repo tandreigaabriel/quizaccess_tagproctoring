@@ -18,7 +18,7 @@
  * Scheduled task definitions for TAG Proctoring quiz access rule.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -33,6 +33,16 @@ $tasks = [
         'day'         => '*',
         'month'       => '*',
         'dayofweek'   => '*',
+        'disabled'    => 0,
+    ],
+    [
+        'classname'   => 'quizaccess_tagproctoring\task\renew_license',
+        'blocking'    => 0,
+        'minute'      => '0',
+        'hour'        => '2',
+        'day'         => '*',
+        'month'       => '*',
+        'dayofweek'   => '0', // Sunday
         'disabled'    => 0,
     ],
 ];

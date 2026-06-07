@@ -28,6 +28,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
     var liveVideo = null;          // persistent hidden video element for webcam frame capture
     var screenVideo = null;        // persistent hidden video element for screen-share frame capture
     var cfg = {};
+    var statusBarWebcamDot = null;
+    var statusBarScreenDot = null;
 
     // Face-turn detection.
     var faceDetectModel = null;
@@ -157,11 +159,13 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         document.body.appendChild(v);
         v.play().catch(function() {});
         screenVideo = v;
+        updateStatusScreen(true);
 
         // Detect when the student stops sharing (clicks "Stop sharing" in browser UI).
         stream.getTracks().forEach(function(track) {
             track.addEventListener('ended', function() {
                 logEvent('screensharestop', 'Screen share stream ended during exam');
+                updateStatusScreen(false);
                 if (screenVideo && screenVideo.parentNode) {
                     screenVideo.parentNode.removeChild(screenVideo);
                 }
@@ -231,8 +235,12 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
      * If the student's face turns significantly, log an event and capture a screenshot.
      */
     function loadFaceDetection() {
-        var TFJS = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js';
-        var FACE = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js';
+        var TFJS = (cfg && cfg.vendorBase)
+            ? cfg.vendorBase + '/js/tf.min.js'
+            : 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js';
+        var FACE = (cfg && cfg.vendorBase)
+            ? cfg.vendorBase + '/js/blazeface.min.js'
+            : 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js';
 
         loadScript(TFJS, function(err) {
             if (err || !window.tf) {
@@ -275,7 +283,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 var eyeDist = Math.abs(lEyeX - rEyeX);
                 var ratio   = eyeDist > 0 ? Math.abs(noseX - eyeMid) / eyeDist : 0;
                 // ratio > 0.30 ≈ ~17° head turn — enough to flag a deliberate look-away.
-                if (ratio > 0.30) {
+                if (ratio > (cfg.faceTurnSensitivity || 0.30)) {
                     var now = Date.now();
                     if (now - lastFaceTurnShot > 30000) { // max 1 screenshot per 30 s
                         lastFaceTurnShot = now;
@@ -288,6 +296,117 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
     }
 
     /**
+     * Zero-pad a number to two digits for the session timer display.
+     *
+     * @param {number} n Number to pad.
+     * @returns {string} Two-digit string.
+     */
+    function pad(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
+    /**
+     * Inject a fixed status bar at the top of the quiz page showing live monitoring status.
+     * Creates webcam and screen-share indicators and starts an elapsed-time counter.
+     */
+    function createStatusBar() {
+        var style = document.createElement('style');
+        style.textContent = [
+            '#tagproctor-statusbar{',
+            'position:fixed;top:0;left:0;right:0;height:44px;z-index:9998;',
+            'background:rgba(10,14,23,.95);backdrop-filter:blur(12px);',
+            'border-bottom:1px solid rgba(255,255,255,.08);',
+            'display:flex;align-items:center;justify-content:space-between;',
+            'padding:0 20px;font-family:sans-serif;font-size:13px;color:#94a3b8;',
+            'box-shadow:0 2px 16px rgba(0,0,0,.5)}',
+            '#tagproctor-statusbar .tp-sb-left{display:flex;align-items:center;gap:6px;',
+            'font-size:13px;font-weight:700;color:#e2e8f0;letter-spacing:.01em}',
+            '#tagproctor-statusbar .tp-sb-indicators{display:flex;align-items:center;gap:20px}',
+            '#tagproctor-statusbar .tp-sb-item{display:flex;align-items:center;gap:6px}',
+            '#tagproctor-statusbar .tp-sb-dot{width:8px;height:8px;border-radius:50%;',
+            'background:#6b7280;flex-shrink:0}',
+            '#tagproctor-statusbar .tp-sb-dot.active{background:#22c55e;',
+            'animation:tp-sb-pulse 2s ease-in-out infinite}',
+            '@keyframes tp-sb-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}',
+            '50%{box-shadow:0 0 0 4px rgba(34,197,94,0)}}',
+            '#tagproctor-statusbar .tp-sb-timer{font-size:13px;color:#94a3b8;',
+            'font-variant-numeric:tabular-nums}'
+        ].join('');
+        document.head.appendChild(style);
+
+        var bar = document.createElement('div');
+        bar.id = 'tagproctor-statusbar';
+        bar.innerHTML = [
+            '<div class="tp-sb-left">🔒 Secure Exam Active</div>',
+            '<div class="tp-sb-indicators">',
+            '<div class="tp-sb-item">',
+            '<span class="tp-sb-dot" id="tp-sb-dot-cam"></span>',
+            '<span id="tp-sb-lbl-cam" style="color:#6b7280">Webcam Initialising</span>',
+            '</div>',
+            '<div class="tp-sb-item">',
+            '<span class="tp-sb-dot" id="tp-sb-dot-scr"></span>',
+            '<span id="tp-sb-lbl-scr" style="color:#6b7280">Screen Share Pending</span>',
+            '</div>',
+            '</div>',
+            '<div class="tp-sb-timer" id="tp-sb-timer">00:00</div>'
+        ].join('');
+        document.body.appendChild(bar);
+        document.body.style.paddingTop = '44px';
+
+        statusBarWebcamDot = document.getElementById('tp-sb-dot-cam');
+        statusBarScreenDot = document.getElementById('tp-sb-dot-scr');
+
+        var startTime = Date.now();
+        var timerEl = document.getElementById('tp-sb-timer');
+        setInterval(function() {
+            var elapsed = Math.floor((Date.now() - startTime) / 1000);
+            var h = Math.floor(elapsed / 3600);
+            var m = Math.floor((elapsed % 3600) / 60);
+            var s = elapsed % 60;
+            var display = (h > 0 ? pad(h) + ':' : '') + pad(m) + ':' + pad(s);
+            if (timerEl) { timerEl.textContent = display; }
+        }, 1000);
+    }
+
+    /**
+     * Update the webcam status indicator in the top bar.
+     *
+     * @param {boolean} active True if webcam stream is live.
+     */
+    function updateStatusWebcam(active) {
+        if (!statusBarWebcamDot) {
+            return;
+        }
+        var lbl = document.getElementById('tp-sb-lbl-cam');
+        if (active) {
+            statusBarWebcamDot.className = 'tp-sb-dot active';
+            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = 'Webcam Active'; }
+        } else {
+            statusBarWebcamDot.className = 'tp-sb-dot';
+            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = 'Webcam Inactive'; }
+        }
+    }
+
+    /**
+     * Update the screen-share status indicator in the top bar.
+     *
+     * @param {boolean} active True if screen-share stream is live.
+     */
+    function updateStatusScreen(active) {
+        if (!statusBarScreenDot) {
+            return;
+        }
+        var lbl = document.getElementById('tp-sb-lbl-scr');
+        if (active) {
+            statusBarScreenDot.className = 'tp-sb-dot active';
+            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = 'Screen Shared'; }
+        } else {
+            statusBarScreenDot.className = 'tp-sb-dot';
+            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = 'Screen Share Stopped'; }
+        }
+    }
+
+    /**
      * Request webcam access, create the live video element, and load face detection.
      * Screenshots are event-triggered only — no periodic timer is set here.
      */
@@ -296,6 +415,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
             .then(function(stream) {
                 webcamStream = stream;
                 createLiveVideo();
+                updateStatusWebcam(true);
                 // Load face detection in the background — non-blocking.
                 loadFaceDetection();
             })
@@ -410,10 +530,11 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
 
     /**
      * Show a blocking overlay whenever the student is not in fullscreen.
-     * Displayed immediately on load and again any time they exit.
+     * Overlay severity escalates on repeated exits to deter violations.
      */
     function enforceFullscreen() {
-        var enteredFullscreen = false; // only log exits after student has entered once
+        var enteredFullscreen = false;
+        var exitCount = 0;
         var overlay = document.createElement('div');
         overlay.id = 'tagproctor-fs-overlay';
         overlay.style.cssText = [
@@ -428,19 +549,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
             'text-align:center',
             'padding:32px'
         ].join(';');
-        overlay.innerHTML = [
-            '<div style="font-size:48px;margin-bottom:16px">\ud83d\udd12</div>',
-            '<h2 style="margin:0 0 10px;font-size:24px">Full Screen Required</h2>',
-            '<p style="margin:0 0 24px;font-size:15px;opacity:.85">',
-            'This exam must be taken in full screen with screen sharing active.',
-            '<br>Click the button below, then select <strong>Entire Screen</strong> when prompted.',
-            '</p>',
-            '<button id="tagproctor-fs-reenter"',
-            ' style="padding:12px 28px;font-size:16px;font-weight:700;',
-            'border:none;border-radius:8px;background:#7e2a8e;color:#fff;cursor:pointer">',
-            '\ud83d\udd12 Enter Full Screen',
-            '</button>'
-        ].join('');
         document.body.appendChild(overlay);
 
         /** Request fullscreen on the document element. */
@@ -462,8 +570,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 return;
             }
             ownScreenShareActive = true;
-            // Flag that the picker is open so onFsChange and detectTabSwitch ignore
-            // the fullscreen-exit and window-blur events the picker itself causes.
             awaitingScreenShare = true;
             navigator.mediaDevices.getDisplayMedia({
                 video: {displaySurface: 'monitor'},
@@ -472,8 +578,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 ownScreenShareActive = false;
                 awaitingScreenShare = false;
                 createScreenVideo(stream);
-                // The picker exited fullscreen — silently re-enter it so the student
-                // does not have to click the overlay button a second time.
                 var fsReq = document.documentElement.requestFullscreen ||
                             document.documentElement.webkitRequestFullscreen ||
                             document.documentElement.mozRequestFullScreen;
@@ -483,17 +587,75 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
             }).catch(function() {
                 ownScreenShareActive = false;
                 awaitingScreenShare = false;
-                // Screen share declined — screenshots fall back to webcam.
             });
         }
 
-        document.getElementById('tagproctor-fs-reenter').addEventListener('click', function() {
-            enterFs();
-            // Only request screen share if we don't already have an active stream.
-            if (!screenVideo) {
-                requestScreenShare();
+        /** Rebuild the overlay panel content and button for the current exitCount. */
+        function renderOverlay() {
+            var icon, title, msg, sub, btnText, btnBg, borderCol, panelBg, countLine;
+            if (exitCount === 0) {
+                icon      = '\ud83d\udd12';
+                title     = 'Full Screen Required';
+                msg       = 'This exam must be taken in full screen with screen sharing active.';
+                sub       = 'Click the button below, then select <strong>Entire Screen</strong> when prompted.';
+                btnText   = '\ud83d\udd12 Enter Full Screen';
+                btnBg     = '#7e2a8e';
+                borderCol = 'rgba(109,40,217,.55)';
+                panelBg   = 'rgba(109,40,217,.12)';
+            } else if (exitCount === 1) {
+                icon      = '\u26a0\ufe0f';
+                title     = 'Exam Monitoring Alert';
+                msg       = 'You exited fullscreen. This has been recorded as a violation.';
+                sub       = 'Please return to fullscreen immediately to continue your exam.';
+                btnText   = 'Return to Full Screen';
+                btnBg     = '#b45309';
+                borderCol = 'rgba(234,179,8,.60)';
+                panelBg   = 'rgba(234,179,8,.10)';
+            } else if (exitCount === 2) {
+                icon      = '\ud83d\udea8';
+                title     = 'Repeated Violation Recorded';
+                msg       = 'You have exited fullscreen ' + exitCount + ' times. Your session is under review.';
+                sub       = 'Return to fullscreen immediately to continue your exam.';
+                btnText   = 'Return to Full Screen Now';
+                btnBg     = '#c2410c';
+                borderCol = 'rgba(249,115,22,.65)';
+                panelBg   = 'rgba(249,115,22,.12)';
+            } else {
+                icon      = '\ud83d\udea8';
+                title     = 'Critical: Multiple Violations';
+                msg       = 'You have exited fullscreen ' + exitCount + ' times. Your invigilator has been notified.';
+                sub       = 'Further violations will result in your exam being flagged for review.';
+                btnText   = 'Return to Full Screen Now';
+                btnBg     = '#b91c1c';
+                borderCol = 'rgba(239,68,68,.70)';
+                panelBg   = 'rgba(239,68,68,.14)';
             }
-        });
+            countLine = exitCount > 0
+                ? '<p style="margin:0 0 20px;font-size:12px;color:rgba(255,255,255,.50)">Violation count: ' + exitCount + '</p>'
+                : '<p style="margin:0 0 20px;font-size:14px;color:rgba(255,255,255,.75)">' +
+                  'Click the button below to begin your exam.</p>';
+            overlay.innerHTML = [
+                '<div style="background:' + panelBg + ';border:1.5px solid ' + borderCol + ';',
+                'border-radius:16px;padding:32px 40px;max-width:480px;width:100%;text-align:center">',
+                '<div style="font-size:52px;margin-bottom:14px">' + icon + '</div>',
+                '<h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#fff">' + title + '</h2>',
+                '<p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.80);line-height:1.6">' + msg + '</p>',
+                '<p style="margin:0 0 4px;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5">' + sub + '</p>',
+                countLine,
+                '<button id="tagproctor-fs-reenter"',
+                ' style="padding:12px 28px;font-size:15px;font-weight:700;',
+                'border:none;border-radius:8px;background:' + btnBg + ';color:#fff;cursor:pointer">',
+                btnText,
+                '</button>',
+                '</div>'
+            ].join('');
+            document.getElementById('tagproctor-fs-reenter').addEventListener('click', function() {
+                enterFs();
+                if (!screenVideo) {
+                    requestScreenShare();
+                }
+            });
+        }
 
         /** Handle fullscreen change events, hiding the overlay when in fullscreen. */
         function onFsChange() {
@@ -504,17 +666,15 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 enteredFullscreen = true;
                 overlay.style.display = 'none';
             } else {
-                // The getDisplayMedia picker forces fullscreen to exit — ignore it.
-                // We auto re-enter fullscreen once the picker resolves (see requestScreenShare).
                 if (awaitingScreenShare) {
                     return;
                 }
-                overlay.style.display = 'flex';
-                // Only log after the student has actually entered fullscreen at least once.
-                // Avoids a spurious event on the initial page load.
                 if (enteredFullscreen) {
-                    logEvent('fullscreenexit', 'Student exited full screen');
+                    exitCount++;
+                    logEvent('fullscreenexit', 'Student exited fullscreen, count=' + exitCount);
                 }
+                renderOverlay();
+                overlay.style.display = 'flex';
             }
         }
 
@@ -522,9 +682,75 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         document.addEventListener('webkitfullscreenchange', onFsChange);
         document.addEventListener('mozfullscreenchange', onFsChange);
 
-        // Show overlay immediately — student must click to enter fullscreen.
-        // (requestFullscreen requires a user gesture so we cannot call it automatically.)
+        // Show the overlay immediately on load.
         onFsChange();
+    }
+
+    /**
+     * Return true if the current device is a mobile or tablet.
+     *
+     * @returns {boolean}
+     */
+    function isMobileDevice() {
+        return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    /**
+     * Return the supported browser name if Chrome or Edge, otherwise null.
+     *
+     * @returns {string|null} 'Chrome', 'Edge', or null.
+     */
+    function getSupportedBrowser() {
+        var ua = navigator.userAgent;
+        if (/Edg\//.test(ua))    { return 'Edge'; }
+        if (/Chrome\//.test(ua)) { return 'Chrome'; }
+        return null;
+    }
+
+    /**
+     * Show a blocking overlay when the device or browser is unsupported.
+     * Returns true if the check failed (caller should abort init).
+     *
+     * @returns {boolean} True if environment is unsupported.
+     */
+    function checkEnvironment() {
+        var mobile  = isMobileDevice();
+        var browser = getSupportedBrowser();
+        if (!mobile && browser) {
+            return false;
+        }
+
+        var icon, title, msg, sub;
+        if (mobile) {
+            icon  = '💻';
+            title = 'Desktop or Laptop Required';
+            msg   = 'Secure exams cannot be taken on a mobile phone or tablet.';
+            sub   = 'Please use a desktop or laptop computer running Chrome or Edge.';
+        } else {
+            icon  = '🚧';
+            title = 'Unsupported Browser';
+            msg   = 'This secure exam requires Google Chrome or Microsoft Edge.';
+            sub   = 'Please reopen this page in Chrome or Edge to continue.';
+        }
+
+        var overlay = document.createElement('div');
+        overlay.style.cssText = [
+            'position:fixed;inset:0;z-index:1000001',
+            'background:rgba(0,0,0,.96)',
+            'display:flex;flex-direction:column;align-items:center;justify-content:center',
+            'color:#fff;font-family:sans-serif;text-align:center;padding:32px'
+        ].join(';');
+        overlay.innerHTML = [
+            '<div style="background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.55);',
+            'border-radius:16px;padding:36px 44px;max-width:460px;width:100%">',
+            '<div style="font-size:52px;margin-bottom:14px">' + icon + '</div>',
+            '<h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#fff">' + title + '</h2>',
+            '<p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.80);line-height:1.6">' + msg + '</p>',
+            '<p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.5">' + sub + '</p>',
+            '</div>'
+        ].join('');
+        document.body.appendChild(overlay);
+        return true;
     }
 
     /**
@@ -550,6 +776,9 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         init: function(config) {
             cfg = config;
             if (!cfg.attemptid || !cfg.cmid) {
+                return;
+            }
+            if (checkEnvironment()) {
                 return;
             }
 
@@ -580,6 +809,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 }
             } catch (e) { /* sessionStorage blocked — skip timer reset */ }
 
+            createStatusBar();
             startWebcam();
             enforceFullscreen();
             detectMultipleScreens();

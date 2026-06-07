@@ -18,7 +18,7 @@
  * Database upgrade steps for TAG Proctoring quiz access rule.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -82,6 +82,20 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         );
 
         upgrade_plugin_savepoint(true, 2026041300, 'quizaccess', 'tagproctoring');
+    }
+
+    // 2026041400 - Add enableroomscan column to per-quiz settings table.
+    if ($oldversion < 2026041400) {
+        $table = new xmldb_table('quizaccess_tagproctoring_settings');
+
+        $field = new xmldb_field(
+            'enableroomscan', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 1, 'enabled'
+        );
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026041400, 'quizaccess', 'tagproctoring');
     }
 
     return true;

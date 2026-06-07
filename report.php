@@ -21,7 +21,7 @@
  * for quiz attempts.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -391,38 +391,34 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
           <div class="tagrep-section-hd">Violation Categories</div>
           <div id="tagrep-cat-list"></div>
           <div id="tagrep-scan-section" style="display:none">
-            <div class="tagrep-section-hd" style="margin-top:0;border-top:1px solid #f0f0f0;">Room Scan
-              Video</div>
+            <div class="tagrep-section-hd" style="margin-top:0;border-top:1px solid #f0f0f0;">Room Scan Video</div>
             <video id="tagrep-scan-video" controls muted preload="none" class="tagrep-scan-video"></video>
           </div>
         </div>
 
         <div class="tagrep-flags-right">
-          <div class="tagrep-viewer-hd" id="tagrep-viewer-hd">
-            <span id="tagrep-viewer-title">Select a category to view evidence</span>
+          <div class="tagrep-carousel-hd">
+            <span id="tagrep-carousel-title">All Screenshots</span>
+            <span id="tagrep-carousel-count"></span>
           </div>
-          <div class="tagrep-shot-area" id="tagrep-shot-area">
-            <div class="tagrep-shot-empty" id="tagrep-shot-empty">
-              <span style="font-size:48px;display:block;margin-bottom:12px;">🖼</span>
-              Select a violation category on the left to view evidence screenshots
+          <div class="tagrep-carousel-area" id="tagrep-carousel-area">
+            <div class="tagrep-carousel-empty" id="tagrep-carousel-empty">
+              <span style="font-size:48px;display:block;margin-bottom:12px;">&#x1f4f7;</span>
+              No screenshots captured for this attempt
             </div>
-            <div id="tagrep-shot-content" style="display:none">
-              <div style="position:relative;display:inline-block;width:100%;">
-                <img id="tagrep-shot-img" class="tagrep-shot-img" src="" alt="Screenshot">
-                <span id="tagrep-shot-suspicious" style="display:none;position:absolute;top:8px;right:8px;
-                  background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;
-                  border-radius:10px;">&#x26a0;&#xfe0f; Suspicious</span>
-              </div>
-              <p class="tagrep-shot-time" id="tagrep-shot-time"></p>
-            </div>
-          </div>
-          <div class="tagrep-shot-nav" id="tagrep-shot-nav" style="display:none">
-            <button class="tagrep-nav-btn" onclick="tagRepShotStep(-1)">&#8592; Prev</button>
-            <span class="tagrep-shot-counter" id="tagrep-shot-counter">1 / 1</span>
-            <button class="tagrep-nav-btn" onclick="tagRepShotStep(1)">Next &#8594;</button>
+            <div class="tagrep-carousel" id="tagrep-carousel" style="display:none"></div>
           </div>
         </div>
+
       </div>
+    </div>
+  </div>
+
+  <div class="tagrep-lightbox" id="tagrep-lightbox" style="display:none" onclick="tagRepCloseLightbox()">
+    <div class="tagrep-lightbox-inner" onclick="event.stopPropagation()">
+      <img id="tagrep-lightbox-img" src="" alt="Screenshot">
+      <p id="tagrep-lightbox-caption"></p>
+      <button class="tagrep-nav-btn" style="margin-top:4px;" onclick="tagRepCloseLightbox()">&#x2715; Close</button>
     </div>
   </div>
 

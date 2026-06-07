@@ -18,14 +18,15 @@
  * English language strings for TAG Proctoring quiz access rule.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $string['consentlabel'] = 'I consent to recording a short room scan video for exam integrity purposes.';
-$string['duration'] = 'Room scan duration (seconds)';
+$string['duration'] = 'Room scan max duration (seconds)';
+$string['enableroomscan'] = 'Require room scan for this exam';
 $string['enableproctor'] = 'Enable TAG proctoring';
 
 $string['event_cameradisabled'] = 'Camera disabled';
@@ -104,6 +105,10 @@ $string['scan_object_tablet'] = 'Tablet';
 $string['scanrequired'] = 'You must complete the room scan before starting the attempt.';
 $string['selfierequired'] = 'You must complete the selfie verification step before starting the attempt.';
 
+$string['settings_enableroomscan'] = 'Enable room scan step';
+$string['settings_enableroomscan_desc'] = 'When enabled, students must record a short room scan video before starting the exam.';
+$string['settings_scanduration'] = 'Room scan maximum duration (seconds)';
+$string['settings_scanduration_desc'] = 'Maximum length of the room scan recording (default 45 seconds). Minimum enforced is 30 seconds.';
 $string['settings_enableevents'] = 'Enable suspicious event tracking';
 $string['settings_enableevents_desc'] = 'Log tab switches, copy/paste, DevTools, and other suspicious events.';
 $string['settings_enablescreenshots'] = 'Enable webcam screenshots';
@@ -118,6 +123,30 @@ $string['settings_screenshotinterval_desc'] = 'How often (in seconds) a webcam s
 
 $string['tagproctoring:viewreport'] = 'View TAG proctoring reports';
 $string['task_cleanup_files'] = 'TAG Proctoring: delete expired scan videos and screenshots';
+$string['task_renew_license'] = 'TAG Proctoring: weekly license token renewal';
+
+// License settings.
+$string['settings_license'] = 'TAG Proctoring License';
+$string['settings_license_desc'] = 'Enter the license key provided by TAG Web Design. To request a free 60-day trial key, contact <a href="mailto:andrei@tandreig.com">andrei@tandreig.com</a>.';
+$string['settings_license_key'] = 'License key';
+$string['settings_license_key_desc'] = 'Paste your license key here and save. Activation is automatic.';
+
+// License status badges.
+$string['license_status_valid']      = 'License Active';
+$string['license_status_grace']      = 'Grace Period — Renew Soon';
+$string['license_status_expired']    = 'License Expired';
+$string['license_status_unlicensed'] = 'Not Activated';
+
+// License detail labels.
+$string['license_plan']    = 'Plan';
+$string['license_expires'] = 'Expires';
+$string['license_domain']  = 'Domain';
+
+// License activation messages.
+$string['license_activated']         = 'License activated successfully.';
+$string['license_invalid_key']       = 'Invalid or revoked license key. Please check your key and try again.';
+$string['license_server_unreachable'] = 'License server unreachable. Please try again later.';
+$string['license_trial_local']       = 'Trial token issued locally (license server not yet reachable). Valid for 60 days.';
 
 // Upload endpoints.
 $string['error_no_video'] = 'No video file received';
@@ -144,11 +173,44 @@ $string['screenshots_col_detail'] = 'Detail';
 $string['screenshots_grid_heading'] = 'Webcam Screenshots ({$a})';
 $string['screenshots_none'] = 'No screenshots captured for this attempt.';
 
+// Grades table proctoring column.
+$string['grades_col_proctoring'] = 'Proctoring';
+$string['grades_status_high'] = 'High Risk';
+$string['grades_status_medium'] = 'Medium';
+$string['grades_status_low'] = 'Clean';
+
 // Report page.
 $string['report_no_attempts'] = 'No completed attempts found for this quiz.';
 
 // Rule link.
 $string['report_link_label'] = 'Proctoring Report';
+
+// Detection settings.
+$string['settings_detection'] = 'AI Detection';
+$string['settings_ai_confidence_threshold'] = 'Object detection confidence threshold';
+$string['settings_ai_confidence_threshold_desc'] = 'Minimum confidence score (0.0–1.0) for the AI to count a detected object. Lower values detect more objects but increase false positives. Default: 0.35.';
+$string['settings_ai_min_detections'] = 'Minimum detections before flagging';
+$string['settings_ai_min_detections_desc'] = 'How many times an object must appear (each interval is ~1.5 s) before it is marked suspicious. Higher values reduce false positives. Default: 3.';
+$string['settings_ai_flagged_objects'] = 'Flagged object types';
+$string['settings_ai_flagged_objects_desc'] = 'One object class per line. Objects in this list trigger a suspicious scan flag when detected above the minimum threshold. Default classes: cell phone, book, tablet, remote, extra_person, laptop.';
+$string['settings_faceturn_sensitivity'] = 'Face-turn sensitivity';
+$string['settings_faceturn_sensitivity_desc'] = 'Nose-to-eye ratio threshold for detecting a deliberate look-away (0.0–1.0). Lower values are more sensitive. Default: 0.30 (~17° head turn).';
+
+// Risk scoring settings.
+$string['settings_risk'] = 'Risk Scoring';
+$string['settings_risk_desc'] = 'Points awarded for each suspicious event type. The total score determines the risk level shown in the proctoring report.';
+$string['settings_risk_threshold_high'] = 'High risk threshold';
+$string['settings_risk_threshold_high_desc'] = 'Minimum score to classify an attempt as High risk. Default: 50.';
+$string['settings_risk_threshold_medium'] = 'Medium risk threshold';
+$string['settings_risk_threshold_medium_desc'] = 'Minimum score to classify an attempt as Medium risk. Default: 20.';
+$string['settings_risk_score_screenshare'] = 'Score: screen share detected';
+$string['settings_risk_score_multiplescreen'] = 'Score: multiple screens detected';
+$string['settings_risk_score_fullscreenexit'] = 'Score: exited full screen';
+$string['settings_risk_score_tabswitch'] = 'Score: tab switched';
+$string['settings_risk_score_visibilityhidden'] = 'Score: window hidden';
+$string['settings_risk_score_copypaste'] = 'Score: copy/paste detected';
+$string['settings_risk_score_devtools'] = 'Score: DevTools opened';
+$string['settings_risk_score_suspicious_scan'] = 'Score: suspicious room scan';
 
 // Privacy API.
 $string['privacy:metadata:quizaccess_tagproctoring_scan'] = 'Stores room scan video filenames, selfie and ID photo filenames, and AI scan results for each student attempt.';

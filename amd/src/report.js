@@ -17,7 +17,7 @@
  * TAG Proctoring report UI — student list, session cards, violation flags, screenshot viewer.
  *
  * @module     quizaccess_tagproctoring/report
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -64,10 +64,7 @@ define("quizaccess_tagproctoring/report", [], function() {
     // State.
     var currentStudent = null;
     var currentAttempt = null;
-    var currentShots = [];
-    var currentShotIdx = 0;
     var currentCats = [];
-    var currentActiveCat = null;
 
     /**
      * Return the element with the given ID.
@@ -160,6 +157,72 @@ define("quizaccess_tagproctoring/report", [], function() {
     function riskBadge(level, extra) {
         var label = extra ? (RISK_LABEL[level] + ' ' + extra) : RISK_LABEL[level];
         return '<span class="tagrep-badge" style="background:' + RISK_COLOR[level] + ';">' + label + '</span>';
+    }
+
+    /**
+     * Build a plain-English AI summary block for a single attempt.
+     *
+     * @param {Object} attempt Attempt data object.
+     * @returns {string} HTML string for the summary panel.
+     */
+    function buildSummary(attempt) {
+        var counts = {};
+        attempt.events.forEach(function(e) {
+            if (e.type !== 'sessionstart') {
+                counts[e.type] = (counts[e.type] || 0) + 1;
+            }
+        });
+
+        var parts = [];
+        var LABELS = {
+            tabswitch: 'tab switch', visibilityhidden: 'tab hidden',
+            fullscreenexit: 'fullscreen exit', screenshare: 'screen share event',
+            screensharestop: 'screen share stop', multiplescreen: 'multiple screen',
+            copypaste: 'copy/paste', devtools: 'devtools open',
+            faceturn: 'face turned away', faceaway: 'face away',
+            noface: 'no face detected', multiplefaces: 'multiple faces',
+            contextmenu: 'right-click'
+        };
+
+        // High-risk first, then medium/low.
+        var order = ['screenshare','multiplescreen','screensharestop','multiplefaces',
+                     'fullscreenexit','tabswitch','visibilityhidden','faceturn',
+                     'faceaway','noface','copypaste','devtools','contextmenu'];
+        order.forEach(function(t) {
+            if (counts[t]) {
+                var n = counts[t];
+                var lbl = LABELS[t] || t;
+                parts.push(n + ' ' + lbl + (n > 1 && lbl.slice(-1) !== 's' ? 's' : ''));
+            }
+        });
+
+        var scan = attempt.scan;
+        var suspChips = '';
+        if (scan && scan.objects && Object.keys(scan.objects).length) {
+            Object.keys(scan.objects).forEach(function(cls) {
+                var def = SCAN_VIOLATIONS[cls] || {label: cls, sev: 'high'};
+                suspChips += '<span class="tagrep-sum-chip" style="background:' +
+                    SEV_COLOR[def.sev] + ';">' + esc(def.label) + '</span>';
+            });
+        }
+
+        var dispRisk = effectiveRisk(attempt);
+        var riskColor = RISK_COLOR[dispRisk];
+        var riskIcon  = dispRisk === 'invalid' ? '❌' : (dispRisk === 'review' ? '⚠️' : '✅');
+        var riskTxt   = riskIcon + ' ' + RISK_LABEL[dispRisk];
+        if (attempt.risk_score) { riskTxt += ' (' + attempt.risk_score + '/100)'; }
+
+        var body = parts.length
+            ? 'Student completed exam with: ' + parts.join(', ') + '.'
+            : 'No violations detected during this exam session.';
+
+        return '<div class="tagrep-ai-summary">' +
+            '<div class="tagrep-ai-summary-hd">Session Summary</div>' +
+            '<p class="tagrep-ai-summary-body">' + esc(body) + '</p>' +
+            (suspChips ? '<div class="tagrep-ai-summary-chips">' + suspChips + '</div>' : '') +
+            '<div class="tagrep-ai-summary-risk" style="color:' + riskColor + ';">' +
+            riskTxt + '</div>' +
+            '</div>';
     }
 
     /**
@@ -294,6 +357,8 @@ define("quizaccess_tagproctoring/report", [], function() {
                 riskBadge(dispRisk, a.override_valid ? '\u2713 Overridden' : '') +
                 '</div>';
 
+            html += buildSummary(a);
+
             html += '<div class="tagrep-session-body">';
 
             // Selfie + ID photo side by side with face-match badge.
@@ -378,27 +443,27 @@ define("quizaccess_tagproctoring/report", [], function() {
             html += '<a href="' + esc(a.review_url) +
                 '" target="_blank" class="tagrep-btn tagrep-btn--outline">Quiz Results \u2197</a>';
 
-            html += '<div style="width:100%;margin-top:6px;display:flex;gap:6px;">';
-            if (a.events.length > 0) {
-                html += '<button class="tagrep-btn"' +
-                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;"' +
-                    ' onclick="tagRepDeleteEvents(' + student.userid + ',' + a.id + ')">' +
-                    '\ud83d\uddd1 Delete Events (' + a.events.length + ')</button>';
-            }
-            if (a.screenshots.length > 0) {
-                html += '<button class="tagrep-btn"' +
-                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;"' +
-                    ' onclick="tagRepDeleteScreenshots(' + student.userid + ',' + a.id + ')">' +
-                    '\ud83d\uddd1 Delete Screenshots (' + a.screenshots.length + ')</button>';
-            }
-            if (scan && (scan.video_url || scan.selfie_url)) {
-                var durl = CFG2.deleteScanBase + '&userid=' + student.userid;
-                html += '<a href="' + esc(durl) + '" class="tagrep-btn"' +
-                    ' style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 10px;">' +
-                    '\ud83d\uddd1 Delete Scan Data</a>';
-            }
             html += '</div>';
-            html += '</div>';
+            if (a.events.length > 0 || a.screenshots.length > 0 ||
+                    (scan && (scan.video_url || scan.selfie_url))) {
+                html += '<div class="tagrep-session-deletes">';
+                if (a.events.length > 0) {
+                    html += '<button class="tagrep-btn tagrep-btn--delete"' +
+                        ' onclick="tagRepDeleteEvents(' + student.userid + ',' + a.id + ')">' +
+                        '\ud83d\uddd1 Delete Events (' + a.events.length + ')</button>';
+                }
+                if (a.screenshots.length > 0) {
+                    html += '<button class="tagrep-btn tagrep-btn--delete"' +
+                        ' onclick="tagRepDeleteScreenshots(' + student.userid + ',' + a.id + ')">' +
+                        '\ud83d\uddd1 Delete Screenshots (' + a.screenshots.length + ')</button>';
+                }
+                if (scan && (scan.video_url || scan.selfie_url)) {
+                    var durl = CFG2.deleteScanBase + '&userid=' + student.userid;
+                    html += '<a href="' + esc(durl) + '" class="tagrep-btn tagrep-btn--delete">' +
+                        '\ud83d\uddd1 Delete Scan Data</a>';
+                }
+                html += '</div>';
+            }
             html += '</div>';
         });
 
@@ -517,23 +582,138 @@ define("quizaccess_tagproctoring/report", [], function() {
     }
 
     /**
-     * Reset the screenshot viewer to its empty/default state.
+     * Reset the carousel to its default (all screenshots, no highlight) state.
+     * Requires currentAttempt to be set before calling.
      */
     function resetViewer() {
-        currentShots = [];
-        currentShotIdx = 0;
-        currentActiveCat = null;
-        el('tagrep-shot-empty').style.display = '';
-        el('tagrep-shot-content').style.display = 'none';
-        el('tagrep-shot-nav').style.display = 'none';
-        el('tagrep-shot-empty').innerHTML =
-            '<span style="font-size:48px;display:block;margin-bottom:12px;">\ud83d\uddbc</span>' +
-            'Select a violation category on the left to view evidence';
-        el('tagrep-viewer-title').textContent = 'Select a category to view evidence';
+        el('tagrep-carousel-title').textContent = 'All Screenshots';
+        el('tagrep-carousel-count').textContent = '';
+        if (currentAttempt) {
+            renderCarousel(null, '');
+        } else {
+            el('tagrep-carousel').style.display = 'none';
+            el('tagrep-carousel-empty').style.display = '';
+        }
     }
 
     /**
-     * Select and activate a violation category, loading its associated screenshots.
+     * Render the screenshot carousel for the current attempt.
+     * Thumbnails within 90 s of any time in highlightTimes receive a highlight border.
+     * Thumbnails within 5 s of any violation event receive a red dot.
+     * Clicking a thumbnail opens the lightbox.
+     *
+     * @param {Array|null} highlightTimes Unix timestamps to highlight around, or null for no filter.
+     * @param {string}     note           Optional override text shown in the count area.
+     */
+    function renderCarousel(highlightTimes, note) {
+        var shots = currentAttempt ? currentAttempt.screenshots : [];
+        var studentName = currentStudent ? currentStudent.name : '';
+
+        if (!shots.length) {
+            el('tagrep-carousel').style.display = 'none';
+            el('tagrep-carousel-empty').style.display = '';
+            el('tagrep-carousel-empty').innerHTML =
+                '<span style="font-size:48px;display:block;margin-bottom:12px;">📷</span>' +
+                'No screenshots captured for this attempt.';
+            el('tagrep-carousel-count').textContent = typeof note === 'string' ? note : '';
+            return;
+        }
+
+        var allEventTimes = currentAttempt.events
+            .filter(function(e) {return e.type !== 'sessionstart';})
+            .map(function(e) {return e.time;});
+
+        var firstHighlightIdx = -1;
+        var highlightedCount = 0;
+        var html = '';
+
+        shots.forEach(function(shot, idx) {
+            var d = new Date(shot.time * 1000);
+            var timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+            var srcLabel = shot.source === 'screen' ? 'Screen' : 'Webcam';
+
+            var isHighlighted = !!(highlightTimes && highlightTimes.some(function(t) {
+                return Math.abs(shot.time - t) <= 90;
+            }));
+            var isSuspicious = allEventTimes.some(function(t) {
+                return Math.abs(shot.time - t) <= 5;
+            });
+
+            if (isHighlighted) {
+                highlightedCount++;
+                if (firstHighlightIdx === -1) {
+                    firstHighlightIdx = idx;
+                }
+            }
+
+            var cls = 'tagrep-carousel-thumb' + (isHighlighted ? ' tagrep-carousel-thumb--highlight' : '');
+
+            html += '<div class="' + cls + '" id="tagrep-thumb-' + idx + '"' +
+                ' onclick="tagRepOpenLightbox(' + idx + ')" title="Click to enlarge">' +
+                (isSuspicious ? '<span class="tagrep-suspicious-dot"></span>' : '') +
+                '<img src="' + esc(shot.url) + '" alt="Screenshot" loading="lazy">' +
+                '<div class="tagrep-carousel-caption">' +
+                '<span class="tagrep-carousel-time">' + esc(timeStr) + '</span>' +
+                '<span class="tagrep-carousel-source">' + esc(srcLabel) + '</span>' +
+                '<span class="tagrep-carousel-name">' + esc(studentName) + '</span>' +
+                '</div>' +
+                '</div>';
+        });
+
+        el('tagrep-carousel').innerHTML = html;
+        el('tagrep-carousel').style.display = '';
+        el('tagrep-carousel-empty').style.display = 'none';
+
+        if (typeof note === 'string' && note) {
+            el('tagrep-carousel-count').textContent = note;
+        } else if (highlightTimes && highlightedCount > 0) {
+            el('tagrep-carousel-count').textContent =
+                highlightedCount + ' flagged · ' + shots.length + ' total';
+        } else {
+            el('tagrep-carousel-count').textContent =
+                shots.length + ' screenshot' + (shots.length !== 1 ? 's' : '');
+        }
+
+        if (firstHighlightIdx !== -1) {
+            var firstEl = el('tagrep-thumb-' + firstHighlightIdx);
+            if (firstEl) {
+                firstEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+            }
+        }
+    }
+
+    /**
+     * Open the lightbox with the screenshot at the given index.
+     *
+     * @param {number} idx Index into the current attempt's screenshots array.
+     */
+    function tagRepOpenLightbox(idx) {
+        var shots = currentAttempt ? currentAttempt.screenshots : [];
+        var shot = shots[idx];
+        if (!shot) {
+            return;
+        }
+        var d = new Date(shot.time * 1000);
+        var timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+        var srcLabel = shot.source === 'screen' ? 'Screen capture' : 'Webcam';
+
+        el('tagrep-lightbox-img').src = shot.url;
+        el('tagrep-lightbox-caption').textContent =
+            srcLabel + ' · ' + timeStr +
+            (currentStudent ? ' · ' + currentStudent.name : '');
+        el('tagrep-lightbox').style.display = 'flex';
+    }
+
+    /**
+     * Close the lightbox.
+     */
+    function tagRepCloseLightbox() {
+        el('tagrep-lightbox').style.display = 'none';
+        el('tagrep-lightbox-img').src = '';
+    }
+
+    /**
+     * Select and activate a violation category, highlighting its screenshots in the carousel.
      *
      * @param {number} idx Index into the currentCats array.
      */
@@ -549,140 +729,21 @@ define("quizaccess_tagproctoring/report", [], function() {
         if (!cat || !currentAttempt) {
             return;
         }
-        currentActiveCat = cat;
+        el('tagrep-carousel-title').textContent = cat.icon + '  ' + cat.label;
 
-        el('tagrep-viewer-title').textContent = cat.icon + '  ' + cat.label;
+        var highlightTimes = null;
+        var note = '';
 
         if (cat.source === 'event') {
-            var times = currentAttempt.events
+            highlightTimes = currentAttempt.events
                 .filter(function(e) {return e.type === cat.event_type;})
                 .map(function(e) {return e.time;});
-
-            var FACE_EVENTS = {noface: 1, faceaway: 1, faceturn: 1, multiplefaces: 1, nocamera: 1};
-            var preferSource = FACE_EVENTS[cat.event_type] ? 'webcam' : 'screen';
-
-            var allMatched = currentAttempt.screenshots.filter(function(s) {
-                return times.some(function(t) {return Math.abs(s.time - t) <= 90;});
-            });
-            currentShots = allMatched.filter(function(s) {return s.source === preferSource;});
-            if (!currentShots.length) {
-                currentShots = allMatched;
-            }
-
-            currentShots.sort(function(a, b) {
-                var dA = Math.min.apply(null, times.map(function(t) {return Math.abs(a.time - t);}));
-                var dB = Math.min.apply(null, times.map(function(t) {return Math.abs(b.time - t);}));
-                return dA - dB;
-            });
-            if (!currentShots.length) {
-                currentShots = currentAttempt.screenshots.slice();
-            }
-        } else {
-            currentShots = [];
+        } else if (cat.source === 'scan') {
+            var hasVid = currentAttempt.scan && currentAttempt.scan.video_url;
+            note = hasVid ? 'Evidence in room scan video ↑' : 'No room scan video available';
         }
 
-        currentShotIdx = 0;
-
-        // Update viewer title with time range once shots are known.
-        if (currentShots.length > 1) {
-            var shotTimes = currentShots.map(function(s) {return s.time;});
-            var tMin = Math.min.apply(null, shotTimes);
-            var tMax = Math.max.apply(null, shotTimes);
-            var fmt = function(ts) {
-                return new Date(ts * 1000).toLocaleTimeString([], {
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                });
-            };
-            el('tagrep-viewer-title').textContent =
-                cat.icon + '  ' + cat.label +
-                '  \u2014  ' + currentShots.length + ' shots  (' + fmt(tMin) + ' \u2192 ' + fmt(tMax) + ')';
-        }
-
-        renderShot();
-    }
-
-    /**
-     * Render the currently selected screenshot in the viewer.
-     */
-    function renderShot() {
-        if (!currentShots.length) {
-            el('tagrep-shot-empty').style.display = '';
-            el('tagrep-shot-content').style.display = 'none';
-            el('tagrep-shot-nav').style.display = 'none';
-            if (currentActiveCat && currentActiveCat.source === 'scan') {
-                var hasVid = currentAttempt && currentAttempt.scan && currentAttempt.scan.video_url;
-                el('tagrep-shot-empty').innerHTML =
-                    '<span style="font-size:36px;display:block;margin-bottom:10px;">\ud83c\udfa5</span>' +
-                    '<strong>Evidence in Room Scan Recording</strong><br>' +
-                    '<span style="color:#6b7280;font-size:12px;">' +
-                    'This violation was detected by AI during the room scan.<br>' +
-                    (hasVid ? 'Watch the room scan video on the left panel.' : 'No room scan video available.') +
-                    '</span>';
-            } else {
-                el('tagrep-shot-empty').innerHTML =
-                    '<span style="font-size:48px;display:block;margin-bottom:12px;">\ud83d\udcf7</span>' +
-                    'No screenshots captured within 90 seconds of this event.';
-            }
-            return;
-        }
-
-        var shot = currentShots[currentShotIdx];
-        var d = new Date(shot.time * 1000);
-        var tStr = (shot.source === 'screen' ? 'Screen capture' : 'Webcam') + ' at ' + d.toLocaleTimeString([], {
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
-
-        var contextLine = '';
-        if (currentActiveCat && currentActiveCat.source === 'event' && currentAttempt) {
-            var evTimes = currentAttempt.events
-                .filter(function(e) {return e.type === currentActiveCat.event_type;})
-                .map(function(e) {return e.time;});
-            if (evTimes.length) {
-                var nearest = evTimes.reduce(function(best, t) {
-                    return Math.abs(t - shot.time) < Math.abs(best - shot.time) ? t : best;
-                }, evTimes[0]);
-                var diffSec = Math.round(shot.time - nearest);
-                var diffStr = diffSec === 0 ? 'at event time' :
-                    diffSec > 0 ? diffSec + 's after event' :
-                    Math.abs(diffSec) + 's before event';
-                var evD = new Date(nearest * 1000);
-                contextLine = ' \u2014 Event at ' + evD.toLocaleTimeString([], {
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                }) + ' (' + diffStr + ')';
-            }
-        }
-
-        // Mark screenshot as suspicious if it falls within 5 s of any violation event.
-        var allEventTimes = currentAttempt ? currentAttempt.events
-            .filter(function(e) {return e.type !== 'sessionstart';})
-            .map(function(e) {return e.time;}) : [];
-        var isSuspicious = allEventTimes.some(function(t) {
-            return Math.abs(shot.time - t) <= 5;
-        });
-
-        el('tagrep-shot-img').src = shot.url;
-        el('tagrep-shot-time').textContent = tStr + contextLine;
-
-        var suspBadge = el('tagrep-shot-suspicious');
-        suspBadge.style.display = isSuspicious ? '' : 'none';
-
-        el('tagrep-shot-empty').style.display = 'none';
-        el('tagrep-shot-content').style.display = '';
-        el('tagrep-shot-counter').textContent = (currentShotIdx + 1) + ' / ' + currentShots.length;
-        el('tagrep-shot-nav').style.display = currentShots.length > 1 ? '' : 'none';
-    }
-
-    /**
-     * Advance the screenshot viewer by one step in the given direction.
-     *
-     * @param {number} dir +1 for next, -1 for previous.
-     */
-    function tagRepShotStep(dir) {
-        if (!currentShots.length) {
-            return;
-        }
-        currentShotIdx = (currentShotIdx + dir + currentShots.length) % currentShots.length;
-        renderShot();
+        renderCarousel(highlightTimes, note);
     }
 
     /**
@@ -834,7 +895,8 @@ define("quizaccess_tagproctoring/report", [], function() {
             window.tagRepOpenStudent = tagRepOpenStudent;
             window.tagRepOpenFlags = tagRepOpenFlags;
             window.tagRepSelectCat = tagRepSelectCat;
-            window.tagRepShotStep = tagRepShotStep;
+            window.tagRepOpenLightbox = tagRepOpenLightbox;
+            window.tagRepCloseLightbox = tagRepCloseLightbox;
             window.tagRepSetOverride = tagRepSetOverride;
             window.tagRepDeleteScreenshots = tagRepDeleteScreenshots;
             window.tagRepDeleteEvents = tagRepDeleteEvents;

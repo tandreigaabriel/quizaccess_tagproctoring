@@ -18,7 +18,7 @@
  * Report table class for TAG Proctoring quiz access rule.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -184,9 +184,18 @@ class report_list extends table_sql {
             $event_counts[$e->eventtype] = ($event_counts[$e->eventtype] ?? 0) + 1;
         }
 
-        $high_risk = ['screenshare' => 50, 'multiplescreen' => 50];
-        $med_risk  = ['fullscreenexit' => 20, 'tabswitch' => 10,
-                      'visibilityhidden' => 10, 'copypaste' => 10, 'devtools' => 5];
+        $plg = 'quizaccess_tagproctoring';
+        $high_risk = [
+            'screenshare'    => (int)(get_config($plg, 'risk_score_screenshare') ?: 50),
+            'multiplescreen' => (int)(get_config($plg, 'risk_score_multiplescreen') ?: 50),
+        ];
+        $med_risk = [
+            'fullscreenexit'   => (int)(get_config($plg, 'risk_score_fullscreenexit') ?: 20),
+            'tabswitch'        => (int)(get_config($plg, 'risk_score_tabswitch') ?: 10),
+            'visibilityhidden' => (int)(get_config($plg, 'risk_score_visibilityhidden') ?: 10),
+            'copypaste'        => (int)(get_config($plg, 'risk_score_copypaste') ?: 10),
+            'devtools'         => (int)(get_config($plg, 'risk_score_devtools') ?: 5),
+        ];
 
         foreach ($high_risk as $type => $pts) {
             if (!empty($event_counts[$type])) {
@@ -208,13 +217,16 @@ class report_list extends table_sql {
             }
         }
 
+        $scanscore = (int)(get_config($plg, 'risk_score_suspicious_scan') ?: 30);
         if ($scan && !empty($scan->scan_suspicious)) {
-            $score += 30;
+            $score += $scanscore;
             $factors[] = '<span style="display:block;font-size:11px;color:#d97706;">'
-                . '&#9888; Suspicious objects in room scan</span>';
+                . '&#9888; ' . get_string('report_risk_suspicious_scan', 'quizaccess_tagproctoring') . '</span>';
         }
 
-        $risk   = $score >= 50 ? 'high' : ($score >= 20 ? 'medium' : 'low');
+        $thresholdhigh   = (int)(get_config($plg, 'risk_threshold_high') ?: 50);
+        $thresholdmedium = (int)(get_config($plg, 'risk_threshold_medium') ?: 20);
+        $risk = $score >= $thresholdhigh ? 'high' : ($score >= $thresholdmedium ? 'medium' : 'low');
         $colors = ['high' => '#dc2626', 'medium' => '#d97706', 'low' => '#16a34a'];
         $color  = $colors[$risk];
         $label  = get_string('report_risk_' . $risk, 'quizaccess_tagproctoring');

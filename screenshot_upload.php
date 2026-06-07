@@ -18,7 +18,7 @@
  * Webcam screenshot upload endpoint for TAG Proctoring.
  *
  * @package    quizaccess_tagproctoring
- * @copyright  2026 Andrei Toma <https://www.tagwebdesign.co.uk>
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -58,7 +58,7 @@ try {
 
     // Enforce the admin-configured maximum screenshots per attempt to prevent storage overload.
     // With 500+ concurrent students each triggering events, this cap keeps server load predictable.
-    $maxshots = (int) get_config('quizaccess_tagproctoring', 'maxscreenshots') ?: 50;
+    $maxshots = (int) get_config('quizaccess_tagproctoring', 'maxscreenshots') ?: 20;
     $existingcount = $DB->count_records('quizaccess_tagproctoring_screenshots', ['attemptid' => $attemptid]);
     if ($existingcount >= $maxshots) {
         ob_end_clean();
