@@ -372,6 +372,12 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             if (!checkbox.checked) {
                 return;
             }
+            // Enter browser fullscreen at the first wizard action so the entire
+            // setup flow (room scan, selfie, ID, screen share) runs in a secure
+            // immersive environment — matching the quiz page behaviour.
+            var fsEl = document.documentElement;
+            var fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen;
+            if (fsReq) { fsReq.call(fsEl).catch(function() {}); }
             markDone(0);
             if (cfg && cfg.enableRoomScan === 0) {
                 // Room scan disabled by admin — skip step 1.
@@ -451,7 +457,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                             mediaRecorder.start();
                             dot.classList.add('is-recording');
                             startBtn.disabled = false;
-                            startBtn.textContent = '\u23fa Stop Recording';
+                            startBtn.textContent = 'Stop Recording';
                             startBtn.classList.remove('tagwiz-btn--record');
                             startBtn.classList.add('tagwiz-btn--danger');
                             statusEl.textContent =
@@ -517,11 +523,11 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                                 ? data.flagged.join(', ')
                                 : 'prohibited item';
                             setStatus('tagwiz-rs-status',
-                                '\u26a0\ufe0f Detected: ' + flagged + '. ' +
+                                'Detected: ' + flagged + '. ' +
                                 'Please remove these from your desk and redo the room scan.',
                                 'danger');
                             startBtn.disabled = false;
-                            startBtn.textContent = '\u21bb Redo Room Scan';
+                            startBtn.textContent = 'Redo Room Scan';
                             startBtn.classList.remove('tagwiz-btn--danger');
                             startBtn.classList.add('tagwiz-btn--record');
                             started = false;
@@ -529,7 +535,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                             successEl.style.display = 'block';
                             statusEl.textContent = '';
                             startBtn.disabled = true;
-                            startBtn.textContent = '\u2705 Room scan complete';
+                            startBtn.textContent = 'Room scan complete';
                             startBtn.classList.remove('tagwiz-btn--danger');
                             startBtn.classList.add('tagwiz-btn--record');
                             nextBtn.disabled = false;
@@ -540,7 +546,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                             'Upload failed: ' + (data.message || 'unknown error') + '. Retry.', 'danger');
                         markFailed(1);
                         startBtn.disabled = false;
-                        startBtn.textContent = '\u21bb Retry Recording';
+                        startBtn.textContent = 'Retry Recording';
                         startBtn.classList.remove('tagwiz-btn--danger');
                         startBtn.classList.add('tagwiz-btn--record');
                         started = false;
@@ -728,7 +734,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             ovalColor = 'rgba(34,197,94,0.90)';
             ovalDash  = [10, 6];
             stableFrames++;
-            setStatus('tagwiz-selfie-status', '✓ Face detected — hold still…', '');
+            setStatus('tagwiz-selfie-status', 'Face detected — hold still...', '');
             if (stableFrames >= 4) {
                 startCountdown();
             }
@@ -915,7 +921,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.status === 'ok') {
-                        setStatus('tagwiz-selfie-status', '✅ Selfie saved.', 'success');
+                        setStatus('tagwiz-selfie-status', 'Selfie saved.', 'success');
                         nextBtn.disabled = false;
                         markDone(2);
                     } else {
@@ -1072,8 +1078,8 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
             /* All good */
             stableFrames++;
-            setGuide('rgba(34,197,94,.85)', '\u2714 Hold still...');
-            setStatus('tagwiz-id-status', '\u2714 Face and ID detected - hold steady...', 'success');
+            setGuide('rgba(34,197,94,.85)', 'Hold still...');
+            setStatus('tagwiz-id-status', 'Face and ID detected \u2014 hold steady...', 'success');
 
             if (stableFrames >= 3 && !captureActive) {
                 startCountdown();
@@ -1239,7 +1245,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                 .then(function(data) {
                     if (data && data.status === 'ok') {
                         setStatus('tagwiz-id-status',
-                            '\u2705 ID photo saved. Your invigilator will verify your identity.',
+                            'ID photo saved. Your invigilator will verify your identity.',
                             'success');
                         nextBtn.disabled = false;
                         markDone(3);
@@ -1292,7 +1298,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
                     if (settings.displaySurface && settings.displaySurface !== 'monitor') {
                         setStatus('tagwiz-ss-status',
-                            '\u26a0\ufe0f You chose "'  + settings.displaySurface +
+                            'You chose "' + settings.displaySurface +
                             '" \u2014 you must select "Entire Screen". Click Share Screen and try again.',
                             'danger');
                         return;
@@ -1334,7 +1340,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                     if (multimonEl) { multimonEl.style.display = 'none'; }
                     if (beforeEl)   { beforeEl.style.display   = 'block'; }
                     setStatus('tagwiz-ss-status',
-                        '\u2705 Single screen detected. Click Share Screen to continue.', 'success');
+                        'Single screen detected. Click Share Screen to continue.', 'success');
                 } else {
                     setStatus('tagwiz-ss-status',
                         'Multiple screens still detected. Disconnect or mirror your displays first.',

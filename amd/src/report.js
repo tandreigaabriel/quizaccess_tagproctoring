@@ -346,7 +346,6 @@ define("quizaccess_tagproctoring/report", [], function() {
             '<div class="tagrep-sessions-grid">';
 
         student.attempts.forEach(function(a) {
-            var pct = a.quiz_sumgrades ? Math.round(a.sumgrades * 100 / a.quiz_sumgrades) : null;
             var scan = a.scan;
 
             html += '<div class="tagrep-session-card">';
@@ -409,7 +408,6 @@ define("quizaccess_tagproctoring/report", [], function() {
             html += infoRow('Start', fmtDateTime(a.timestart));
             html += infoRow('End', fmtDateTime(a.timefinish));
             html += infoRow('Duration', fmtDuration(a.timestart, a.timefinish));
-            html += infoRow('Score', pct !== null ? pct + '%' : '\u2014');
             html += infoRow('Events', a.events.length + ' logged');
             html += infoRow('Screenshots', a.screenshots.length + ' captured');
             html += '</div>';
@@ -613,7 +611,6 @@ define("quizaccess_tagproctoring/report", [], function() {
             el('tagrep-carousel').style.display = 'none';
             el('tagrep-carousel-empty').style.display = '';
             el('tagrep-carousel-empty').innerHTML =
-                '<span style="font-size:48px;display:block;margin-bottom:12px;">📷</span>' +
                 'No screenshots captured for this attempt.';
             el('tagrep-carousel-count').textContent = typeof note === 'string' ? note : '';
             return;

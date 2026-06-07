@@ -25,22 +25,22 @@
 }}
 <div class="tagwiz-wrap" id="tagwiz-wrap">
 
-  {{! ── Hero banner ── }}
+  {{! Hero banner }}
   <div class="tagwiz-hero">
-    <div class="tagwiz-hero-icon">&#x1f512;</div>
+    <div class="tagwiz-hero-icon">TAG</div>
     <div>
       <div class="tagwiz-hero-title">Secure Exam Check-In</div>
       <div class="tagwiz-hero-sub">Complete all 5 steps before your exam begins &mdash; this usually takes 3&ndash;5 minutes.</div>
     </div>
   </div>
 
-  {{! ── Progress stepper ── }}
+  {{! Progress stepper }}
   <div class="tagwiz-bar">
 
     <div class="tagwiz-ind tagwiz-ind--active" id="tagwiz-ind-0">
       <div class="tagwiz-ind-circle">
         <span class="tagwiz-ind-num">1</span>
-        <span class="tagwiz-ind-icon">&#x1f4cb;</span>
+        <span class="tagwiz-ind-icon"></span>
       </div>
       <div class="tagwiz-ind-label">Rules</div>
     </div>
@@ -49,7 +49,7 @@
     <div class="tagwiz-ind" id="tagwiz-ind-1">
       <div class="tagwiz-ind-circle">
         <span class="tagwiz-ind-num">2</span>
-        <span class="tagwiz-ind-icon">&#x1f3a5;</span>
+        <span class="tagwiz-ind-icon"></span>
       </div>
       <div class="tagwiz-ind-label">Room Scan</div>
     </div>
@@ -58,7 +58,7 @@
     <div class="tagwiz-ind" id="tagwiz-ind-2">
       <div class="tagwiz-ind-circle">
         <span class="tagwiz-ind-num">3</span>
-        <span class="tagwiz-ind-icon">&#x1f933;</span>
+        <span class="tagwiz-ind-icon"></span>
       </div>
       <div class="tagwiz-ind-label">Selfie</div>
     </div>
@@ -67,7 +67,7 @@
     <div class="tagwiz-ind" id="tagwiz-ind-3">
       <div class="tagwiz-ind-circle">
         <span class="tagwiz-ind-num">4</span>
-        <span class="tagwiz-ind-icon">&#x1faa6;</span>
+        <span class="tagwiz-ind-icon"></span>
       </div>
       <div class="tagwiz-ind-label">ID Photo</div>
     </div>
@@ -76,17 +76,17 @@
     <div class="tagwiz-ind" id="tagwiz-ind-4">
       <div class="tagwiz-ind-circle">
         <span class="tagwiz-ind-num">5</span>
-        <span class="tagwiz-ind-icon">&#x1f5a5;&#xfe0f;</span>
+        <span class="tagwiz-ind-icon"></span>
       </div>
       <div class="tagwiz-ind-label">Screen</div>
     </div>
 
   </div>{{! /tagwiz-bar }}
 
-  {{! ── Step 0 — Rules & Consent ── }}
+  {{! Step 0 — Rules & Consent }}
   <div id="tagwiz-step-0" class="tagwiz-card">
     <div class="tagwiz-card-header">
-      <div class="tagwiz-badge tagwiz-badge--rules">&#x1f4cb;</div>
+      <div class="tagwiz-badge tagwiz-badge--rules">01</div>
       <div>
         <h4 class="tagwiz-title">Exam Rules &amp; Proctoring Consent</h4>
         <p class="tagwiz-subtitle">Read carefully and accept all rules before continuing.</p>
@@ -99,15 +99,15 @@
           This exam is proctored. Your webcam, screen activity, and environment will be recorded and reviewed by your invigilator.
         </p>
         <ul class="tagwiz-rules-list">
-          <li><span class="tagwiz-rule-icon">&#x1f464;</span> You must be alone in the room.</li>
-          <li><span class="tagwiz-rule-icon">&#x1f441;&#xfe0f;</span> Keep your face fully visible to the webcam at all times.</li>
-          <li><span class="tagwiz-rule-icon">&#x1f4f5;</span> No phones, books, notes, or additional screens are permitted.</li>
-          <li><span class="tagwiz-rule-icon">&#x1f6ab;</span> Do not switch browser tabs or minimise the exam window.</li>
-          <li><span class="tagwiz-rule-icon">&#x1f5a5;&#xfe0f;</span> You must share your <strong>entire screen</strong> (not a tab or window) when prompted.</li>
-          <li><span class="tagwiz-rule-icon">&#x26a0;&#xfe0f;</span> Any suspicious behaviour will be flagged and reviewed.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> You must be alone in the room.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> Keep your face fully visible to the webcam at all times.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> No phones, books, notes, or additional screens are permitted.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> Do not switch browser tabs or minimise the exam window.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> You must share your <strong>entire screen</strong> (not a tab or window) when prompted.</li>
+          <li><span class="tagwiz-rule-icon">&ndash;</span> Any suspicious behaviour will be flagged and reviewed.</li>
         </ul>
         <div class="tagwiz-rules-warning">
-          &#x26a0;&#xfe0f; <strong>Important:</strong> Leaving fullscreen, switching tabs, stopping screen sharing, or using additional monitors will be recorded as violations and reviewed by your invigilator.
+          <strong>Important:</strong> Leaving fullscreen, switching tabs, stopping screen sharing, or using additional monitors will be recorded as violations and reviewed by your invigilator.
         </div>
       </div>
       <div class="tagwiz-scroll-hint" id="tagwiz-rules-scroll-hint">&#x2193; Scroll down to read all rules</div>
@@ -121,7 +121,7 @@
         </label>
       </div>
       <div class="tagwiz-rules-confirmed" id="tagwiz-rules-confirmed" style="display:none">
-        &#x2705; Rules accepted
+        Rules accepted
       </div>
 
       <div class="tagwiz-actions">
@@ -133,10 +133,10 @@
     </div>
   </div>{{! /step-0 }}
 
-  {{! ── Step 1 — Room Scan ── }}
+  {{! Step 1 — Room Scan }}
   <div id="tagwiz-step-1" class="tagwiz-card" style="display:none">
     <div class="tagwiz-card-header">
-      <div class="tagwiz-badge tagwiz-badge--scan">&#x1f3a5;</div>
+      <div class="tagwiz-badge tagwiz-badge--scan">02</div>
       <div>
         <h4 class="tagwiz-title">Room Scan</h4>
         <p class="tagwiz-subtitle">Record a 30&ndash;45 s video panning around your room and desk.</p>
@@ -158,7 +158,7 @@
           </div>
           <div class="tagwiz-cam-actions">
             <button type="button" class="tagwiz-btn tagwiz-btn--record" id="tagwiz-rs-start">
-              &#9210; Start Recording
+              Start Recording
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--next" id="tagwiz-rs-next" disabled>
               Next &rarr;
@@ -167,16 +167,16 @@
         </div>
 
         <div class="tagwiz-info-col">
-          <p class="tagwiz-section-title">&#x1f4cb; Instructions</p>
+          <p class="tagwiz-section-title">Instructions</p>
           <ul class="tagwiz-list">
             <li>Allow camera &amp; microphone access when prompted.</li>
-            <li>Click <strong>Start Recording</strong> — a 5-second countdown will begin.</li>
+            <li>Click <strong>Start Recording</strong> &mdash; a 5-second countdown will begin.</li>
             <li>Slowly pan <strong>360&deg;</strong> around your entire room and desk.</li>
             <li>Show that there are no phones, notes, or other people present.</li>
             <li>Recording stops automatically at 45 s (minimum 30 s).</li>
           </ul>
           <div id="tagwiz-rs-success" style="display:none" class="tagwiz-success">
-            &#x2705; Room scan uploaded successfully!
+            Room scan uploaded successfully.
           </div>
         </div>
 
@@ -184,10 +184,10 @@
     </div>
   </div>{{! /step-1 }}
 
-  {{! ── Step 2 — Selfie ── }}
+  {{! Step 2 — Selfie }}
   <div id="tagwiz-step-2" class="tagwiz-card" style="display:none">
     <div class="tagwiz-card-header">
-      <div class="tagwiz-badge tagwiz-badge--selfie">&#x1f933;</div>
+      <div class="tagwiz-badge tagwiz-badge--selfie">03</div>
       <div>
         <h4 class="tagwiz-title">Identity Selfie</h4>
         <p class="tagwiz-subtitle">Take a clear photo of your face for identity verification.</p>
@@ -198,26 +198,24 @@
 
         <div>
           <div class="tagwiz-video-wrap tagwiz-video-wrap--selfie" style="position:relative;overflow:hidden;">
-            {{! Video is kept alive for frame capture but hidden behind the canvas }}
             <video id="tagwiz-selfie-video" autoplay muted playsinline
               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none;"></video>
-            {{! Canvas renders blurred background + clear oval — updated every animation frame }}
             <canvas id="tagwiz-selfie-canvas" style="display:block;width:100%;height:100%;"></canvas>
             <div class="tagwiz-selfie-guide"></div>
             <div id="tagwiz-selfie-countdown" class="tagwiz-selfie-countdown" style="display:none">3</div>
           </div>
           <div id="tagwiz-selfie-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
             <img id="tagwiz-selfie-preview" class="tagwiz-preview-img" src="" alt="Selfie preview">
-            <div class="tagwiz-preview-badge">&#x2705; Captured</div>
+            <div class="tagwiz-preview-badge">Captured</div>
           </div>
           <p id="tagwiz-selfie-status" class="tagwiz-status-msg"></p>
           <div class="tagwiz-cam-actions">
             <button type="button" class="tagwiz-btn tagwiz-btn--capture" id="tagwiz-selfie-capture">
-              &#128247; Take Photo
+              Take Photo
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--retake" id="tagwiz-selfie-retake"
               style="display:none">
-              &#8635; Retake
+              Retake
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--next" id="tagwiz-selfie-next" disabled>
               Next &rarr;
@@ -226,7 +224,7 @@
         </div>
 
         <div class="tagwiz-info-col">
-          <p class="tagwiz-section-title">&#x1f4cb; Instructions</p>
+          <p class="tagwiz-section-title">Instructions</p>
           <ul class="tagwiz-list">
             <li>Look <strong>directly</strong> at the camera.</li>
             <li>Ensure your face is <strong>well-lit</strong> and clearly visible.</li>
@@ -241,10 +239,10 @@
     </div>
   </div>{{! /step-2 }}
 
-  {{! ── Step 3 — ID Photo ── }}
+  {{! Step 3 — ID Photo }}
   <div id="tagwiz-step-3" class="tagwiz-card" style="display:none">
     <div class="tagwiz-card-header">
-      <div class="tagwiz-badge tagwiz-badge--id">&#x1faa6;</div>
+      <div class="tagwiz-badge tagwiz-badge--id">04</div>
       <div>
         <h4 class="tagwiz-title">Photo ID Verification</h4>
         <p class="tagwiz-subtitle">Hold your government-issued photo ID up to the camera.</p>
@@ -263,16 +261,16 @@
           </div>
           <div id="tagwiz-id-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
             <img id="tagwiz-id-preview" class="tagwiz-preview-img" src="" alt="ID photo preview">
-            <div class="tagwiz-preview-badge">&#x2705; Captured</div>
+            <div class="tagwiz-preview-badge">Captured</div>
           </div>
           <p id="tagwiz-id-status" class="tagwiz-status-msg"></p>
           <div class="tagwiz-cam-actions">
             <button type="button" class="tagwiz-btn tagwiz-btn--capture" id="tagwiz-id-capture">
-              &#128247; Take Photo
+              Take Photo
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--retake" id="tagwiz-id-retake"
               style="display:none">
-              &#8635; Retake
+              Retake
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--next" id="tagwiz-id-next" disabled>
               Next &rarr;
@@ -281,7 +279,7 @@
         </div>
 
         <div class="tagwiz-info-col">
-          <p class="tagwiz-section-title">&#x1f4cb; Instructions</p>
+          <p class="tagwiz-section-title">Instructions</p>
           <ul class="tagwiz-list">
             <li>Hold your <strong>government-issued photo ID</strong> up to the camera.</li>
             <li>The name, photo, and ID number must all be readable.</li>
@@ -289,7 +287,7 @@
             <li>Your face must also be visible alongside the ID.</li>
           </ul>
           <div class="tagwiz-id-tip">
-            &#x1f4a1; <strong>Tip:</strong> Use the green border guide to align your ID card.
+            <strong>Tip:</strong> Use the green border guide to align your ID card.
           </div>
         </div>
 
@@ -297,10 +295,10 @@
     </div>
   </div>{{! /step-3 }}
 
-  {{! ── Step 4 — Screen Share ── }}
+  {{! Step 4 — Screen Share }}
   <div id="tagwiz-step-4" class="tagwiz-card" style="display:none">
     <div class="tagwiz-card-header">
-      <div class="tagwiz-badge tagwiz-badge--screen">&#x1f5a5;&#xfe0f;</div>
+      <div class="tagwiz-badge tagwiz-badge--screen">05</div>
       <div>
         <h4 class="tagwiz-title">Screen Share Verification</h4>
         <p class="tagwiz-subtitle">Share your entire screen to confirm your environment is ready.</p>
@@ -311,13 +309,13 @@
 
         {{! Before-share instruction panel }}
         <div id="tagwiz-ss-before" class="tagwiz-ss-before">
-          <p class="tagwiz-ss-before-title">&#x26a0;&#xfe0f; When the browser dialog opens, you <strong>must</strong> select:</p>
+          <p class="tagwiz-ss-before-title">When the browser dialog opens, you <strong>must</strong> select:</p>
           <div class="tagwiz-ss-guide">
             <div class="tagwiz-ss-guide-step">
               <span class="tagwiz-ss-guide-num">1</span>
               <div class="tagwiz-ss-guide-text">
-                Click the <strong>&#x201c;Entire Screen&#x201d;</strong> tab
-                <span class="tagwiz-ss-guide-warn">Not &#x201c;Window&#x201d; or &#x201c;Tab&#x201d;</span>
+                Click the <strong>&ldquo;Entire Screen&rdquo;</strong> tab
+                <span class="tagwiz-ss-guide-warn">Not &ldquo;Window&rdquo; or &ldquo;Tab&rdquo;</span>
               </div>
             </div>
             <div class="tagwiz-ss-guide-step">
@@ -326,15 +324,15 @@
             </div>
             <div class="tagwiz-ss-guide-step">
               <span class="tagwiz-ss-guide-num">3</span>
-              <div class="tagwiz-ss-guide-text">Click <strong>&#x201c;Share&#x201d;</strong></div>
+              <div class="tagwiz-ss-guide-text">Click <strong>&ldquo;Share&rdquo;</strong></div>
             </div>
           </div>
         </div>
 
-        {{! Multi-monitor warning panel (hidden until detected) }}
+        {{! Multi-monitor warning panel }}
         <div id="tagwiz-ss-multimon" class="tagwiz-ss-multimon" style="display:none">
           <div class="tagwiz-ss-multimon-header">
-            <span class="tagwiz-ss-multimon-icon">&#x1f5a5;&#xfe0f;</span>
+            <span class="tagwiz-ss-multimon-icon">&#x26a0;</span>
             <strong>Additional Monitor Detected</strong>
           </div>
           <p class="tagwiz-ss-multimon-desc">
@@ -351,9 +349,9 @@
 
         <p id="tagwiz-ss-status" class="tagwiz-status-msg"></p>
 
-        {{! B6 — Exam Ready Checklist }}
+        {{! Exam Ready Checklist }}
         <div id="tagwiz-checklist" class="tagwiz-checklist" style="display:none">
-          <div class="tagwiz-checklist-title">&#x1f512; All checks passed &mdash; you are ready to begin</div>
+          <div class="tagwiz-checklist-title">All checks passed &mdash; you are ready to begin</div>
           <ul class="tagwiz-checklist-list">
             <li><span class="tagwiz-chk-mark">&#x2713;</span> Rules accepted</li>
             <li id="tagwiz-chk-scan"><span class="tagwiz-chk-mark">&#x2713;</span> Room scan completed</li>
@@ -363,13 +361,13 @@
             <li><span class="tagwiz-chk-mark">&#x2713;</span> Fullscreen will be enforced on start</li>
           </ul>
           <button type="button" class="tagwiz-btn tagwiz-btn--start" id="tagwiz-start-quiz">
-            &#x1f512; Start Secure Exam
+            Start Secure Exam
           </button>
         </div>
 
         <div class="tagwiz-ss-actions">
           <button type="button" class="tagwiz-btn tagwiz-btn--share" id="tagwiz-ss-share">
-            &#x1f4e4; Share Screen
+            Share Screen
           </button>
         </div>
 

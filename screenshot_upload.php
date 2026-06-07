@@ -66,6 +66,18 @@ try {
         exit;
     }
 
+    // Server-side rate limit: max 1 screenshot per 5 seconds per attempt.
+    // Prevents bursts even if the client throttle is bypassed (e.g. multiple tabs).
+    $lastshot = $DB->get_field_sql(
+        'SELECT MAX(timecreated) FROM {quizaccess_tagproctoring_screenshots} WHERE attemptid = ?',
+        [$attemptid]
+    );
+    if ($lastshot && (time() - $lastshot) < 5) {
+        ob_end_clean();
+        echo json_encode(['status' => 'ok', 'skipped' => true, 'reason' => 'rate_limit']);
+        exit;
+    }
+
     $fs = get_file_storage();
     // Screen or webcam. PARAM_ALPHA strips everything except letters — safe for filenames.
     $source = optional_param('source', 'webcam', PARAM_ALPHA);

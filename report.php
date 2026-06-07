@@ -285,7 +285,7 @@ foreach ($attempts as $attempt) {
     'attempt_num' => (int) $attempt->attempt,
     'timestart' => (int) $attempt->timestart,
     'timefinish' => (int) $attempt->timefinish,
-    'sumgrades' => (float) ($attempt->sumgrades ?? 0),
+    'sumgrades' => isset($attempt->sumgrades) ? (float) $attempt->sumgrades : null,
     'quiz_sumgrades' => (float) $quiz->sumgrades,
     'risk_score' => $risk['score'],
     'risk_level' => $risk['level'],
