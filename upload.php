@@ -66,7 +66,13 @@ try {
     require_capability('mod/quiz:attempt', $context);
     $fs = get_file_storage();
 
-    $filename = 'roomscan_' . $quizid . '_' . $USER->id . '_' . time() . '.webm';
+    $originalname = $_FILES['video']['name'] ?? '';
+    $extension = strtolower(pathinfo($originalname, PATHINFO_EXTENSION));
+    if (!in_array($extension, ['webm', 'mp4'], true)) {
+        $extension = 'webm';
+    }
+
+    $filename = 'roomscan_' . $quizid . '_' . $USER->id . '_' . time() . '.' . $extension;
 
     $fileinfo = [
         'contextid' => $context->id,

@@ -29,7 +29,8 @@ define("quizaccess_tagproctoring/report", [], function() {
     var CFG2 = {};
 
     var VIOLATIONS = {
-        tabswitch: {label: 'Tab Switch / Focus Loss', icon: '\ud83d\udd04', sev: 'high'},
+        tabswitch: {label: 'Left Exam View', icon: '\ud83d\udd04', sev: 'high'},
+        windowblur: {label: 'Switched Away From Exam', icon: '\ud83d\udd04', sev: 'high'},
         visibilityhidden: {label: 'Tab Hidden', icon: '\ud83d\udc41', sev: 'medium'},
         fullscreenexit: {label: 'Fullscreen Exited', icon: '\u26f6', sev: 'medium'},
         screenshare: {label: 'Screen Sharing Initiated', icon: '\ud83d\udcfa', sev: 'critical'},
@@ -38,10 +39,11 @@ define("quizaccess_tagproctoring/report", [], function() {
         copypaste: {label: 'Copy / Paste Activity', icon: '\ud83d\udccb', sev: 'medium'},
         contextmenu: {label: 'Right-Click Menu', icon: '\ud83d\uddb1', sev: 'low'},
         devtools: {label: 'Developer Tools Open', icon: '\ud83d\udd27', sev: 'high'},
+        capabilitywarning: {label: 'Browser Capability Warning', icon: '\u26a0', sev: 'medium'},
         nocamera: {label: 'Camera Unavailable', icon: '\ud83d\udcf7', sev: 'high'},
         noface: {label: 'No Face Detected', icon: '\ud83d\udeab', sev: 'high'},
-        faceaway: {label: 'Looking Away from Screen', icon: '\ud83d\udc64', sev: 'medium'},
-        faceturn: {label: 'Face Turned Away', icon: '\ud83d\udc64', sev: 'medium'},
+        faceaway: {label: 'Face Not Visible', icon: '\ud83d\udc64', sev: 'low'},
+        faceturn: {label: 'Face Movement', icon: '\ud83d\udc64', sev: 'low'},
         multiplefaces: {label: 'Multiple Faces During Exam', icon: '\ud83d\udc65', sev: 'critical'},
     };
 
@@ -175,19 +177,21 @@ define("quizaccess_tagproctoring/report", [], function() {
 
         var parts = [];
         var LABELS = {
-            tabswitch: 'tab switch', visibilityhidden: 'tab hidden',
+            tabswitch: 'left exam view', visibilityhidden: 'tab hidden',
+            windowblur: 'switched away from exam',
             fullscreenexit: 'fullscreen exit', screenshare: 'screen share event',
             screensharestop: 'screen share stop', multiplescreen: 'multiple screen',
             copypaste: 'copy/paste', devtools: 'devtools open',
-            faceturn: 'face turned away', faceaway: 'face away',
+            faceaway: 'face not visible',
             noface: 'no face detected', multiplefaces: 'multiple faces',
-            contextmenu: 'right-click'
+            contextmenu: 'right-click',
+            capabilitywarning: 'browser capability warning'
         };
 
         // High-risk first, then medium/low.
         var order = ['screenshare','multiplescreen','screensharestop','multiplefaces',
-                     'fullscreenexit','tabswitch','visibilityhidden','faceturn',
-                     'faceaway','noface','copypaste','devtools','contextmenu'];
+                     'fullscreenexit','tabswitch','visibilityhidden',
+                     'faceaway','noface','capabilitywarning','copypaste','devtools','contextmenu'];
         order.forEach(function(t) {
             if (counts[t]) {
                 var n = counts[t];
@@ -368,17 +372,17 @@ define("quizaccess_tagproctoring/report", [], function() {
                     '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">Selfie</div>' +
                     '<img src="' + esc(scan.selfie_url) + '" class="tagrep-selfie-img" alt="Selfie" ' +
                     'onclick="window.open(\'' + esc(scan.selfie_url) + '\',\'_blank\')"' +
-                    ' style="cursor:zoom-in;width:80px;height:60px;object-fit:cover;border-radius:4px;">' +
+                    ' style="cursor:zoom-in;">' +
                     '</div>';
             } else {
-                html += '<div class="tagrep-selfie-ph" style="width:80px;height:60px;">No<br>Selfie</div>';
+                html += '<div class="tagrep-selfie-ph">No<br>Selfie</div>';
             }
             if (scan && scan.idphoto_url) {
                 html += '<div style="text-align:center;">' +
                     '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">ID Photo</div>' +
                     '<img src="' + esc(scan.idphoto_url) + '" class="tagrep-selfie-img" alt="ID Photo" ' +
                     'onclick="window.open(\'' + esc(scan.idphoto_url) + '\',\'_blank\')"' +
-                    ' style="cursor:zoom-in;width:80px;height:60px;object-fit:cover;border-radius:4px;">' +
+                    ' style="cursor:zoom-in;">' +
                     '</div>';
             }
             html += '</div>';
@@ -409,7 +413,7 @@ define("quizaccess_tagproctoring/report", [], function() {
             html += infoRow('End', fmtDateTime(a.timefinish));
             html += infoRow('Duration', fmtDuration(a.timestart, a.timefinish));
             html += infoRow('Events', a.events.length + ' logged');
-            html += infoRow('Screenshots', a.screenshots.length + ' captured');
+            html += infoRow('Evidence shots', a.screenshots.length + ' stored');
             html += '</div>';
             html += '</div>';
 
@@ -427,7 +431,7 @@ define("quizaccess_tagproctoring/report", [], function() {
             if (a.events.length > 0 || (scan && scan.suspicious)) {
                 html += '<button class="tagrep-btn tagrep-btn--danger" ' +
                     'onclick="tagRepOpenFlags(' + student.userid + ',' + a.id + ')">' +
-                    '\u2691 View Flags</button> ';
+                    '\u2691 Review Evidence</button> ';
             }
             if (a.override_valid) {
                 html += '<button class="tagrep-btn" style="background:#16a34a;color:#fff;" ' +
@@ -453,7 +457,7 @@ define("quizaccess_tagproctoring/report", [], function() {
                 if (a.screenshots.length > 0) {
                     html += '<button class="tagrep-btn tagrep-btn--delete"' +
                         ' onclick="tagRepDeleteScreenshots(' + student.userid + ',' + a.id + ')">' +
-                        '\ud83d\uddd1 Delete Screenshots (' + a.screenshots.length + ')</button>';
+                    '\ud83d\uddd1 Delete Evidence (' + a.screenshots.length + ')</button>';
                 }
                 if (scan && (scan.video_url || scan.selfie_url)) {
                     var durl = CFG2.deleteScanBase + '&userid=' + student.userid;
@@ -506,7 +510,7 @@ define("quizaccess_tagproctoring/report", [], function() {
 
         var eCounts = {};
         currentAttempt.events.forEach(function(e) {
-            if (e.type === 'sessionstart') {
+            if (e.type === 'sessionstart' || e.type === 'faceturn') {
                 return; // informational only — exclude from violation categories
             }
             eCounts[e.type] = (eCounts[e.type] || 0) + 1;
@@ -584,7 +588,7 @@ define("quizaccess_tagproctoring/report", [], function() {
      * Requires currentAttempt to be set before calling.
      */
     function resetViewer() {
-        el('tagrep-carousel-title').textContent = 'All Screenshots';
+        el('tagrep-carousel-title').textContent = 'Tab / Window Evidence';
         el('tagrep-carousel-count').textContent = '';
         if (currentAttempt) {
             renderCarousel(null, '');
@@ -611,13 +615,13 @@ define("quizaccess_tagproctoring/report", [], function() {
             el('tagrep-carousel').style.display = 'none';
             el('tagrep-carousel-empty').style.display = '';
             el('tagrep-carousel-empty').innerHTML =
-                'No screenshots captured for this attempt.';
+                'No tab or window-switch screenshots captured for this attempt.';
             el('tagrep-carousel-count').textContent = typeof note === 'string' ? note : '';
             return;
         }
 
         var allEventTimes = currentAttempt.events
-            .filter(function(e) {return e.type !== 'sessionstart';})
+            .filter(function(e) {return e.type === 'tabswitch' || e.type === 'windowblur';})
             .map(function(e) {return e.time;});
 
         var firstHighlightIdx = -1;

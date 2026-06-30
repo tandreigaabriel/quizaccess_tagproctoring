@@ -151,15 +151,22 @@ $reportsesskey = sesskey();
 function quizaccess_tagproctoring_risk(array $events, $scan): array {
     $score = 0;
 
-    $highrisk = ['screenshare' => 50, 'multiplescreen' => 50, 'multiplefaces' => 40, 'noface' => 20];
+    $highrisk = [
+    'screenshare' => 50,
+    'screensharestop' => 50,
+    'multiplescreen' => 50,
+    'multiplefaces' => 40,
+    'noface' => 20,
+    ];
 
     $medrisk = [
     'fullscreenexit' => 20,
     'tabswitch' => 10,
+    'windowblur' => 10,
     'visibilityhidden' => 10,
     'copypaste' => 10,
     'devtools' => 5,
-    'faceaway' => 5,
+    'capabilitywarning' => 20,
     ];
 
     $counts = [];
@@ -398,13 +405,13 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
 
         <div class="tagrep-flags-right">
           <div class="tagrep-carousel-hd">
-            <span id="tagrep-carousel-title">All Screenshots</span>
+            <span id="tagrep-carousel-title">Tab / Window Evidence</span>
             <span id="tagrep-carousel-count"></span>
           </div>
           <div class="tagrep-carousel-area" id="tagrep-carousel-area">
             <div class="tagrep-carousel-empty" id="tagrep-carousel-empty">
               <span style="font-size:48px;display:block;margin-bottom:12px;">&#x1f4f7;</span>
-              No screenshots captured for this attempt
+              No tab or window-switch screenshots captured for this attempt
             </div>
             <div class="tagrep-carousel" id="tagrep-carousel" style="display:none"></div>
           </div>

@@ -39,12 +39,12 @@ $string['event_multiplescreen'] = 'Multiple screens detected';
 $string['event_nocamera'] = 'Camera unavailable';
 $string['event_screenshare'] = 'Screen share detected';
 $string['event_screensharestop'] = 'Screen share stopped';
-$string['event_tabswitch'] = 'Tab switched';
+$string['event_tabswitch'] = 'Left exam view';
 $string['event_visibilityhidden'] = 'Window hidden';
-$string['event_windowblur'] = 'Window lost focus';
+$string['event_windowblur'] = 'Switched away from exam';
 
 // Violation labels used in the proctoring report viewer.
-$string['violation_tabswitch'] = 'Tab Switch / Focus Loss';
+$string['violation_tabswitch'] = 'Left Exam View';
 $string['violation_visibilityhidden'] = 'Tab Hidden';
 $string['violation_fullscreenexit'] = 'Fullscreen Exited';
 $string['violation_screenshare'] = 'Screen Sharing Initiated';

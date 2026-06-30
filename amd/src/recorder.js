@@ -140,13 +140,26 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             callback(webcamStream);
             return;
         }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            callback(null, new Error('Media devices are not available in this browser.'));
+            return;
+        }
+
         navigator.mediaDevices.getUserMedia({video: true, audio: true})
             .then(function(stream) {
                 webcamStream = stream;
                 callback(stream);
             })
             .catch(function(err) {
-                callback(null, err);
+                navigator.mediaDevices.getUserMedia({video: true, audio: false})
+                    .then(function(stream) {
+                        webcamStream = stream;
+                        callback(stream);
+                    })
+                    .catch(function(videoErr) {
+                        callback(null, videoErr || err);
+                    });
             });
     }
 
@@ -162,6 +175,55 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         }
         videoEl.srcObject = stream;
         videoEl.play().catch(function() {});
+    }
+
+    /**
+     * Pick the best room-scan recording format supported by the current browser.
+     *
+     * @returns {{mimeType: string, extension: string}|null} Supported format info.
+     */
+    function getRecordingFormat() {
+        var types = [
+            {mimeType: 'video/webm;codecs=vp9,opus', extension: 'webm'},
+            {mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm'},
+            {mimeType: 'video/webm', extension: 'webm'},
+            {mimeType: 'video/mp4;codecs=h264,aac', extension: 'mp4'},
+            {mimeType: 'video/mp4', extension: 'mp4'}
+        ];
+
+        if (!window.MediaRecorder) {
+            return null;
+        }
+
+        if (!MediaRecorder.isTypeSupported) {
+            return {mimeType: '', extension: 'webm'};
+        }
+
+        for (var i = 0; i < types.length; i++) {
+            if (MediaRecorder.isTypeSupported(types[i].mimeType)) {
+                return types[i];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Return true if multiple-monitor detection is available and currently positive.
+     *
+     * @returns {boolean} True when an extended display setup is detected.
+     */
+    function hasExtendedScreen() {
+        return !!(window.screen && window.screen.isExtended === true);
+    }
+
+    /**
+     * Return true if the browser exposes the multi-monitor detection signal.
+     *
+     * @returns {boolean} True when the signal is available.
+     */
+    function canDetectExtendedScreen() {
+        return !!(window.screen && typeof window.screen.isExtended === 'boolean');
     }
 
     // ── AI Detection ─────────────────────────────────────────────────────────
@@ -372,12 +434,6 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             if (!checkbox.checked) {
                 return;
             }
-            // Enter browser fullscreen at the first wizard action so the entire
-            // setup flow (room scan, selfie, ID, screen share) runs in a secure
-            // immersive environment — matching the quiz page behaviour.
-            var fsEl = document.documentElement;
-            var fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen;
-            if (fsReq) { fsReq.call(fsEl).catch(function() {}); }
             markDone(0);
             if (cfg && cfg.enableRoomScan === 0) {
                 // Room scan disabled by admin — skip step 1.
@@ -412,18 +468,37 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         var elapsed = 0;
         var tickInterval = null;
         var started = false;
+        var recordingFormat = getRecordingFormat();
+
+        if (!recordingFormat) {
+            setStatus('tagwiz-rs-status',
+                'Video recording is not supported in this browser. Please use a current desktop browser.',
+                'danger');
+            startBtn.disabled = true;
+            return;
+        }
 
         ensureWebcam(function(stream) {
             if (!stream) {
                 setStatus('tagwiz-rs-status',
-                    'Camera access denied — please allow camera/microphone and reload.', 'danger');
+                    'Camera access denied. Please allow camera access in your browser and reload.', 'danger');
                 startBtn.disabled = true;
                 return;
             }
             attachStream(video, stream);
             startAI(video);
 
-            mediaRecorder = new MediaRecorder(stream);
+            try {
+                mediaRecorder = recordingFormat.mimeType
+                    ? new MediaRecorder(stream, {mimeType: recordingFormat.mimeType})
+                    : new MediaRecorder(stream);
+            } catch (e) {
+                setStatus('tagwiz-rs-status',
+                    'Video recording could not start in this browser. Please use a current desktop browser.',
+                    'danger');
+                startBtn.disabled = true;
+                return;
+            }
 
             mediaRecorder.ondataavailable = function(e) {
                 if (e.data && e.data.size > 0) {
@@ -432,7 +507,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             };
 
             mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, {type: 'video/webm'});
+                var blob = new Blob(recordedChunks, {type: recordingFormat.mimeType || mediaRecorder.mimeType});
                 recordedChunks = [];
                 uploadRoomScan(blob);
                 stopAI();
@@ -509,13 +584,27 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         function uploadRoomScan(blob) {
             statusEl.textContent = 'Uploading room scan\u2026';
             var fd = new FormData();
-            fd.append('video', blob, 'roomscan.webm');
+            fd.append('video', blob, 'roomscan.' + recordingFormat.extension);
+            fd.append('video_mime', recordingFormat.mimeType || blob.type || '');
             fd.append('scan_objects', JSON.stringify(detectedObjects));
             fd.append('quizid', cfg.quizid);
             fd.append('sesskey', M.cfg.sesskey);
 
             fetch(cfg.uploadurl, {method: 'POST', body: fd, credentials: 'same-origin'})
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    return r.text().then(function(text) {
+                        var data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            throw new Error(text ? text.slice(0, 180) : 'Empty upload response');
+                        }
+                        if (!r.ok) {
+                            throw new Error(data.message || ('HTTP ' + r.status));
+                        }
+                        return data;
+                    });
+                })
                 .then(function(data) {
                     if (data && data.status === 'ok') {
                         if (data.suspicious) {
@@ -552,8 +641,10 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                         started = false;
                     }
                 })
-                .catch(function() {
-                    setStatus('tagwiz-rs-status', 'Upload error — please retry.', 'danger');
+                .catch(function(err) {
+                    setStatus('tagwiz-rs-status',
+                        'Upload error. ' + (err && err.message ? err.message : 'Please retry.'),
+                        'danger');
                     markFailed(1);
                     startBtn.disabled = false;
                     startBtn.textContent = '\u21bb Retry Recording';
@@ -1286,7 +1377,8 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         function attemptShare() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
                 setStatus('tagwiz-ss-status',
-                    'Screen sharing is not supported in this browser. Use Chrome or Edge.', 'danger');
+                    'Screen sharing is not supported in this browser. Please use a current desktop browser.',
+                    'danger');
                 return;
             }
 
@@ -1304,7 +1396,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                         return;
                     }
 
-                    if (window.screen && window.screen.isExtended === true) {
+                    if (hasExtendedScreen()) {
                         if (multimonEl) { multimonEl.style.display = 'block'; }
                         if (beforeEl)   { beforeEl.style.display   = 'none';  }
                         setStatus('tagwiz-ss-status', '', '');
@@ -1313,7 +1405,13 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
                     if (multimonEl) { multimonEl.style.display = 'none'; }
                     if (beforeEl)   { beforeEl.style.display   = 'none'; }
-                    setStatus('tagwiz-ss-status', '', '');
+                    if (!settings.displaySurface || !canDetectExtendedScreen()) {
+                        setStatus('tagwiz-ss-status',
+                            'Screen sharing confirmed. Some browser-level screen checks are unavailable here, so your session will be reviewed with the recorded evidence.',
+                            'warning');
+                    } else {
+                        setStatus('tagwiz-ss-status', '', '');
+                    }
                     shareBtn.style.display = 'none';
                     markDone(4);
                     if (chkScanEl && !(cfg && cfg.enableRoomScan !== 0)) {
@@ -1336,7 +1434,13 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
         if (recheckBtn) {
             recheckBtn.addEventListener('click', function() {
-                if (!(window.screen && window.screen.isExtended === true)) {
+                if (!canDetectExtendedScreen()) {
+                    if (multimonEl) { multimonEl.style.display = 'none'; }
+                    if (beforeEl)   { beforeEl.style.display   = 'block'; }
+                    setStatus('tagwiz-ss-status',
+                        'This browser does not expose monitor-count detection. Click Share Screen to continue.',
+                        'warning');
+                } else if (!hasExtendedScreen()) {
                     if (multimonEl) { multimonEl.style.display = 'none'; }
                     if (beforeEl)   { beforeEl.style.display   = 'block'; }
                     setStatus('tagwiz-ss-status',

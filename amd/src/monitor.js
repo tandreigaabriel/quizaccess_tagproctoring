@@ -65,10 +65,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         if ((m = ua.match(/Edg\/(\d+)/)))    { return 'Edge ' + m[1]; }
         if ((m = ua.match(/OPR\/(\d+)/)))    { return 'Opera ' + m[1]; }
         if ((m = ua.match(/Firefox\/(\d+)/))){ return 'Firefox ' + m[1]; }
+        if ((m = ua.match(/Version\/(\d+).+Safari/))) { return 'Safari ' + m[1]; }
         if ((m = ua.match(/Chrome\/(\d+)/))) { return 'Chrome ' + m[1]; }
-        if ((m = ua.match(/Safari\/\d+/)) && (m = ua.match(/Version\/(\d+)/))) {
-            return 'Safari ' + m[1];
-        }
         return 'Unknown';
     }
 
@@ -226,7 +224,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         // Detect when the student stops sharing (clicks "Stop sharing" in browser UI).
         stream.getTracks().forEach(function(track) {
             track.addEventListener('ended', function() {
-                captureScreenshot('screensharestop');
                 logEvent('screensharestop', 'Screen share stream ended during exam');
                 updateStatusScreen(false);
                 if (screenVideo && screenVideo.parentNode) {
@@ -278,6 +275,9 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         if (!cfg.enablescreenshots) {
             return;
         }
+        if (trigger !== 'tabswitch' && trigger !== 'windowblur') {
+            return;
+        }
         // Rate limit: skip if an upload is already in-flight or was sent less than 5 s ago.
         // This prevents tab-switch + window-blur firing two concurrent uploads, and stops
         // burst overload when hundreds of students trigger events simultaneously.
@@ -290,9 +290,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         // student's face to understand why the alert fired, not the screen content.
         // All other events (tab switch, window blur, etc.) prefer the screen-share
         // stream so the invigilator can see what the student switched to.
-        var wantWebcam = (trigger === 'faceturn');
-
-        if (!wantWebcam && screenVideo && screenVideo.readyState >= 2 && screenVideo.videoWidth > 0) {
+        if (screenVideo && screenVideo.readyState >= 2 && screenVideo.videoWidth > 0) {
             var w = screenVideo.videoWidth;
             var h = screenVideo.videoHeight;
             // Scale down to max 960 px wide — smaller than 1280 reduces server storage and I/O.
@@ -386,7 +384,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                             lastNoFaceShot = nowAway;
                             noFaceCount = 0;
                             logEvent('faceaway', 'Face not visible for ~9 seconds');
-                            captureScreenshot('faceaway');
                         }
                     }
                     return;
@@ -406,16 +403,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 var noseX   = lm[2][0];
                 var eyeMid  = (rEyeX + lEyeX) / 2;
                 var eyeDist = Math.abs(lEyeX - rEyeX);
-                var ratio   = eyeDist > 0 ? Math.abs(noseX - eyeMid) / eyeDist : 0;
-                // ratio > 0.30 ≈ ~17° head turn — enough to flag a deliberate look-away.
-                if (ratio > (cfg.faceTurnSensitivity || 0.30)) {
-                    var now = Date.now();
-                    if (now - lastFaceTurnShot > 15000) { // max 1 screenshot per 15 s
-                        lastFaceTurnShot = now;
-                        logEvent('faceturn', 'Face turned away, ratio=' + ratio.toFixed(2));
-                        captureScreenshot('faceturn');
-                    }
-                }
+                // Normal left/right face movement is not treated as cheating evidence.
             }).catch(function() {});
         }, 3000);
     }
@@ -621,7 +609,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                     return;
                 }
                 switchCount++;
-                logEvent("tabswitch", "Tab hidden, count=" + switchCount);
+                logEvent("tabswitch", "Student left the exam tab, count=" + switchCount);
                 captureScreenshot('tabswitch');
             }
         });
@@ -636,7 +624,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 if (pageUnloading || document.hasFocus()) {
                     return;
                 }
-                logEvent("windowblur", "Window lost focus");
+                logEvent("windowblur", "Student switched away from the exam window");
                 captureScreenshot('windowblur');
             }, 500);
         });
@@ -718,8 +706,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 awaitingScreenShare = false;
                 createScreenVideo(stream);
                 // requestFullscreen inside a Promise .then() is not a direct user gesture,
-                // so some browsers block it. A short setTimeout keeps it within the gesture
-                // window that Chrome/Edge allow after getDisplayMedia resolves.
+                // so some browsers block it. A short setTimeout works in Chromium and
+                // harmlessly falls back to the fullscreen overlay elsewhere.
                 setTimeout(function() {
                     var fsReq = document.documentElement.requestFullscreen ||
                                 document.documentElement.webkitRequestFullscreen ||
@@ -789,9 +777,10 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 '</div>'
             ].join('');
             document.getElementById('tagproctor-fs-reenter').addEventListener('click', function() {
-                enterFs();
                 if (!screenVideo) {
                     requestScreenShare();
+                } else {
+                    enterFs();
                 }
             });
         }
@@ -811,7 +800,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 if (enteredFullscreen) {
                     exitCount++;
                     logEvent('fullscreenexit', 'Student exited fullscreen, count=' + exitCount);
-                    captureScreenshot('fullscreenexit');
                 }
                 renderOverlay();
                 overlay.style.display = 'flex';
@@ -836,15 +824,41 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
     }
 
     /**
-     * Return the supported browser name if Chrome or Edge, otherwise null.
+     * Return whether core monitoring APIs are available.
      *
-     * @returns {string|null} 'Chrome', 'Edge', or null.
+     * @returns {Object} Capability status.
      */
-    function getSupportedBrowser() {
-        var ua = navigator.userAgent;
-        if (/Edg\//.test(ua))    { return 'Edge'; }
-        if (/Chrome\//.test(ua)) { return 'Chrome'; }
-        return null;
+    function getCapabilityStatus() {
+        var missing = [];
+        var fsEl = document.documentElement;
+        var fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen;
+
+        if (!window.isSecureContext) {
+            missing.push('secure HTTPS context');
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            missing.push('webcam access');
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            missing.push('screen sharing');
+        }
+        if (!fsReq) {
+            missing.push('fullscreen');
+        }
+
+        return {
+            supported: missing.length === 0,
+            missing: missing
+        };
+    }
+
+    /**
+     * Return true if the browser exposes the multi-monitor detection signal.
+     *
+     * @returns {boolean} True when the signal is available.
+     */
+    function canDetectExtendedScreen() {
+        return !!(window.screen && typeof window.screen.isExtended === 'boolean');
     }
 
     /**
@@ -855,8 +869,11 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
      */
     function checkEnvironment() {
         var mobile  = isMobileDevice();
-        var browser = getSupportedBrowser();
-        if (!mobile && browser) {
+        var caps = getCapabilityStatus();
+        if (!mobile && caps.supported) {
+            if (!canDetectExtendedScreen()) {
+                logEvent('capabilitywarning', 'Multiple monitor detection unavailable in ' + detectBrowser());
+            }
             return false;
         }
 
@@ -864,11 +881,11 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         if (mobile) {
             title = 'Desktop or Laptop Required';
             msg   = 'Secure exams cannot be taken on a mobile phone or tablet.';
-            sub   = 'Please use a desktop or laptop computer running Chrome or Edge.';
+            sub   = 'Please use a desktop or laptop computer with a current browser.';
         } else {
             title = 'Unsupported Browser';
-            msg   = 'This secure exam requires Google Chrome or Microsoft Edge.';
-            sub   = 'Please reopen this page in Chrome or Edge to continue.';
+            msg   = 'This secure exam requires camera, screen sharing, fullscreen, and HTTPS support.';
+            sub   = 'Missing: ' + caps.missing.join(', ') + '. Please update your browser or reopen this page in a supported desktop browser.';
         }
 
         var overlay = document.createElement('div');

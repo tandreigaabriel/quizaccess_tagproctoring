@@ -82,8 +82,16 @@ function quizaccess_tagproctoring_get_risk_level($events) {
         return 'low';
     }
 
-    $highrisktypes = ['screenshare', 'multiplescreen'];
-    $mediumrisktypes = ['tabswitch', 'visibilityhidden', 'copypaste'];
+    $highrisktypes = ['screenshare', 'screensharestop', 'multiplescreen', 'multiplefaces', 'noface'];
+    $mediumrisktypes = [
+        'fullscreenexit',
+        'tabswitch',
+        'windowblur',
+        'visibilityhidden',
+        'copypaste',
+        'devtools',
+        'capabilitywarning',
+    ];
 
     foreach ($events as $event) {
         if (in_array($event->eventtype, $highrisktypes)) {
@@ -128,15 +136,20 @@ function quizaccess_tagproctoring_calculate_attempt_risk(array $eventcounts, boo
     $plg = 'quizaccess_tagproctoring';
 
     $highrisk = [
-        'screenshare'    => (int) (get_config($plg, 'risk_score_screenshare') ?: 50),
-        'multiplescreen' => (int) (get_config($plg, 'risk_score_multiplescreen') ?: 50),
+        'screenshare'     => (int) (get_config($plg, 'risk_score_screenshare') ?: 50),
+        'screensharestop' => (int) (get_config($plg, 'risk_score_screenshare') ?: 50),
+        'multiplescreen'  => (int) (get_config($plg, 'risk_score_multiplescreen') ?: 50),
+        'multiplefaces'   => 40,
+        'noface'          => 20,
     ];
     $medrisk = [
         'fullscreenexit'   => (int) (get_config($plg, 'risk_score_fullscreenexit') ?: 20),
         'tabswitch'        => (int) (get_config($plg, 'risk_score_tabswitch') ?: 10),
+        'windowblur'       => (int) (get_config($plg, 'risk_score_tabswitch') ?: 10),
         'visibilityhidden' => (int) (get_config($plg, 'risk_score_visibilityhidden') ?: 10),
         'copypaste'        => (int) (get_config($plg, 'risk_score_copypaste') ?: 10),
         'devtools'         => (int) (get_config($plg, 'risk_score_devtools') ?: 5),
+        'capabilitywarning' => 20,
     ];
     $scanscore       = (int) (get_config($plg, 'risk_score_suspicious_scan') ?: 30);
     $thresholdhigh   = (int) (get_config($plg, 'risk_threshold_high') ?: 50);
