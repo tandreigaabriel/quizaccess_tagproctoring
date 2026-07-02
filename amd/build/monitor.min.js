@@ -275,7 +275,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         if (!cfg.enablescreenshots) {
             return;
         }
-        if (trigger !== 'tabswitch' && trigger !== 'windowblur') {
+        if (['tabswitch', 'windowblur', 'contextmenu'].indexOf(trigger) === -1) {
             return;
         }
         // Rate limit: skip if an upload is already in-flight or was sent less than 5 s ago.
@@ -608,9 +608,16 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 if (awaitingScreenShare) {
                     return;
                 }
-                switchCount++;
-                logEvent("tabswitch", "Student left the exam tab, count=" + switchCount);
-                captureScreenshot('tabswitch');
+                // Some browser permission dialogs and transient UI can briefly hide the
+                // page. Only log this if the page remains hidden.
+                setTimeout(function() {
+                    if (pageUnloading || awaitingScreenShare || !document.hidden) {
+                        return;
+                    }
+                    switchCount++;
+                    logEvent("tabswitch", "Exam page was hidden, count=" + switchCount);
+                    captureScreenshot('tabswitch');
+                }, 1000);
             }
         });
 
@@ -652,6 +659,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         document.addEventListener("contextmenu", function(e) {
             e.preventDefault();
             logEvent("contextmenu", "Right-click detected");
+            captureScreenshot('contextmenu');
         });
     }
 

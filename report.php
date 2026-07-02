@@ -388,14 +388,14 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
     <div class="tagrep-card">
       <div class="tagrep-card-hd">
         <div>
-          <h5 class="tagrep-title" style="font-size:16px;" id="tagrep-flags-title">Violation Flags</h5>
+          <h5 class="tagrep-title" style="font-size:16px;" id="tagrep-flags-title">Potential Violation of Rules</h5>
           <p class="tagrep-subtitle" id="tagrep-flags-sub"></p>
         </div>
       </div>
       <div class="tagrep-flags-layout">
 
         <div class="tagrep-flags-left">
-          <div class="tagrep-section-hd">Violation Categories</div>
+          <div class="tagrep-section-hd">Rule Categories</div>
           <div id="tagrep-cat-list"></div>
           <div id="tagrep-scan-section" style="display:none">
             <div class="tagrep-section-hd" style="margin-top:0;border-top:1px solid #f0f0f0;">Room Scan Video</div>
@@ -405,7 +405,7 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
 
         <div class="tagrep-flags-right">
           <div class="tagrep-carousel-hd">
-            <span id="tagrep-carousel-title">Tab / Window Evidence</span>
+            <span id="tagrep-carousel-title">Screen and Webcam Evidence</span>
             <span id="tagrep-carousel-count"></span>
           </div>
           <div class="tagrep-carousel-area" id="tagrep-carousel-area">

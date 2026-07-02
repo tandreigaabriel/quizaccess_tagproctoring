@@ -29,15 +29,15 @@ define("quizaccess_tagproctoring/report", [], function() {
     var CFG2 = {};
 
     var VIOLATIONS = {
-        tabswitch: {label: 'Left Exam View', icon: '\ud83d\udd04', sev: 'high'},
-        windowblur: {label: 'Switched Away From Exam', icon: '\ud83d\udd04', sev: 'high'},
+        tabswitch: {label: 'Exam Page Hidden', icon: '\ud83d\udd04', sev: 'medium'},
+        windowblur: {label: 'Exam Window Lost Focus', icon: '\ud83d\udd04', sev: 'medium'},
         visibilityhidden: {label: 'Tab Hidden', icon: '\ud83d\udc41', sev: 'medium'},
         fullscreenexit: {label: 'Fullscreen Exited', icon: '\u26f6', sev: 'medium'},
         screenshare: {label: 'Screen Sharing Initiated', icon: '\ud83d\udcfa', sev: 'critical'},
         screensharestop: {label: 'Screen Share Stopped', icon: '\ud83d\udda5', sev: 'high'},
         multiplescreen: {label: 'Multiple Screens Detected', icon: '\ud83d\udda5', sev: 'critical'},
         copypaste: {label: 'Copy / Paste Activity', icon: '\ud83d\udccb', sev: 'medium'},
-        contextmenu: {label: 'Right-Click Menu', icon: '\ud83d\uddb1', sev: 'low'},
+        contextmenu: {label: 'Right-Click Attempt', icon: '\ud83d\uddb1', sev: 'low'},
         devtools: {label: 'Developer Tools Open', icon: '\ud83d\udd27', sev: 'high'},
         capabilitywarning: {label: 'Browser Capability Warning', icon: '\u26a0', sev: 'medium'},
         nocamera: {label: 'Camera Unavailable', icon: '\ud83d\udcf7', sev: 'high'},
@@ -88,6 +88,32 @@ define("quizaccess_tagproctoring/report", [], function() {
         return String(s || '')
             .replace(/&/g, '&amp;').replace(/</g, '&lt;')
             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Return a readable evidence source label.
+     *
+     * @param {string} source Stored screenshot source token.
+     * @param {boolean} longform Whether to return a lightbox-style label.
+     * @returns {string} Human-readable label.
+     */
+    function evidenceSourceLabel(source, longform) {
+        var labels = {
+            screen: 'Screen evidence',
+            tabswitch: 'Screen evidence: exam page hidden',
+            windowblur: 'Screen evidence: exam window lost focus',
+            contextmenu: 'Screen evidence: right-click attempt',
+            webcam: 'Webcam evidence',
+            faceaway: 'Webcam evidence: face not visible',
+            faceturn: 'Webcam evidence: face movement'
+        };
+        if (longform && source === 'screen') {
+            return 'Screen capture';
+        }
+        if (longform && source === 'webcam') {
+            return 'Webcam capture';
+        }
+        return labels[source] || (source ? source.replace(/_/g, ' ') : 'Evidence');
     }
 
     /**
@@ -177,14 +203,14 @@ define("quizaccess_tagproctoring/report", [], function() {
 
         var parts = [];
         var LABELS = {
-            tabswitch: 'left exam view', visibilityhidden: 'tab hidden',
-            windowblur: 'switched away from exam',
+            tabswitch: 'exam page hidden', visibilityhidden: 'tab hidden',
+            windowblur: 'exam window focus loss',
             fullscreenexit: 'fullscreen exit', screenshare: 'screen share event',
             screensharestop: 'screen share stop', multiplescreen: 'multiple screen',
             copypaste: 'copy/paste', devtools: 'devtools open',
             faceaway: 'face not visible',
             noface: 'no face detected', multiplefaces: 'multiple faces',
-            contextmenu: 'right-click',
+            contextmenu: 'right-click attempt',
             capabilitywarning: 'browser capability warning'
         };
 
@@ -431,7 +457,7 @@ define("quizaccess_tagproctoring/report", [], function() {
             if (a.events.length > 0 || (scan && scan.suspicious)) {
                 html += '<button class="tagrep-btn tagrep-btn--danger" ' +
                     'onclick="tagRepOpenFlags(' + student.userid + ',' + a.id + ')">' +
-                    '\u2691 Review Evidence</button> ';
+                    '\u2691 View Flags</button> ';
             }
             if (a.override_valid) {
                 html += '<button class="tagrep-btn" style="background:#16a34a;color:#fff;" ' +
@@ -493,7 +519,7 @@ define("quizaccess_tagproctoring/report", [], function() {
         }
 
         el('tagrep-flags-title').textContent =
-            currentStudent.name + ' \u2014 Attempt #' + currentAttempt.attempt_num;
+            currentStudent.name + ' \u2014 Potential Violation of Rules';
 
         // Show session-start browser/OS info in the subtitle if available.
         var sessionStartEvent = currentAttempt.events.find(function(e) {
@@ -559,7 +585,7 @@ define("quizaccess_tagproctoring/report", [], function() {
                     '<div class="tagrep-cat-text">' +
                     '<span class="tagrep-cat-label">' + esc(cat.label) + '</span>' +
                     '<span class="tagrep-cat-src">' +
-                    (cat.source === 'scan' ? 'Room Scan' : 'During Exam') +
+                    '&middot; ' + (cat.source === 'scan' ? 'Room Scan' : 'During Exam') +
                     '</span>' +
                     '</div>' +
                     '<span class="tagrep-cat-badge" style="background:' + SEV_COLOR[cat.sev] + ';">' +
@@ -588,7 +614,7 @@ define("quizaccess_tagproctoring/report", [], function() {
      * Requires currentAttempt to be set before calling.
      */
     function resetViewer() {
-        el('tagrep-carousel-title').textContent = 'Tab / Window Evidence';
+        el('tagrep-carousel-title').textContent = 'Screen and Webcam Evidence';
         el('tagrep-carousel-count').textContent = '';
         if (currentAttempt) {
             renderCarousel(null, '');
@@ -615,13 +641,15 @@ define("quizaccess_tagproctoring/report", [], function() {
             el('tagrep-carousel').style.display = 'none';
             el('tagrep-carousel-empty').style.display = '';
             el('tagrep-carousel-empty').innerHTML =
-                'No tab or window-switch screenshots captured for this attempt.';
+                note || 'No screenshot evidence captured for this attempt.';
             el('tagrep-carousel-count').textContent = typeof note === 'string' ? note : '';
             return;
         }
 
         var allEventTimes = currentAttempt.events
-            .filter(function(e) {return e.type === 'tabswitch' || e.type === 'windowblur';})
+            .filter(function(e) {
+                return e.type === 'tabswitch' || e.type === 'windowblur' || e.type === 'contextmenu';
+            })
             .map(function(e) {return e.time;});
 
         var firstHighlightIdx = -1;
@@ -631,7 +659,7 @@ define("quizaccess_tagproctoring/report", [], function() {
         shots.forEach(function(shot, idx) {
             var d = new Date(shot.time * 1000);
             var timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
-            var srcLabel = shot.source === 'screen' ? 'Screen' : 'Webcam';
+            var srcLabel = evidenceSourceLabel(shot.source, false);
 
             var isHighlighted = !!(highlightTimes && highlightTimes.some(function(t) {
                 return Math.abs(shot.time - t) <= 90;
@@ -696,7 +724,7 @@ define("quizaccess_tagproctoring/report", [], function() {
         }
         var d = new Date(shot.time * 1000);
         var timeStr = d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
-        var srcLabel = shot.source === 'screen' ? 'Screen capture' : 'Webcam';
+        var srcLabel = evidenceSourceLabel(shot.source, true);
 
         el('tagrep-lightbox-img').src = shot.url;
         el('tagrep-lightbox-caption').textContent =
@@ -739,6 +767,9 @@ define("quizaccess_tagproctoring/report", [], function() {
             highlightTimes = currentAttempt.events
                 .filter(function(e) {return e.type === cat.event_type;})
                 .map(function(e) {return e.time;});
+            if (cat.event_type === 'contextmenu') {
+                note = 'Right-click screenshots are captured for new attempts after this update.';
+            }
         } else if (cat.source === 'scan') {
             var hasVid = currentAttempt.scan && currentAttempt.scan.video_url;
             note = hasVid ? 'Evidence in room scan video ↑' : 'No room scan video available';
@@ -798,7 +829,7 @@ define("quizaccess_tagproctoring/report", [], function() {
      * @param {number} attemptId Attempt ID.
      */
     function tagRepDeleteScreenshots(uid, attemptId) {
-        if (!confirm('Permanently delete all webcam screenshots for this attempt?')) {
+        if (!confirm('Permanently delete all screenshot evidence for this attempt?')) {
             return;
         }
 
