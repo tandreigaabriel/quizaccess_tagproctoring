@@ -82,7 +82,7 @@ class observer {
             return;
         }
 
-        $student = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname, email');
+        $student = $DB->get_record('user', ['id' => $userid]);
         $quiz    = $DB->get_record('quiz', ['id' => $quizid], 'id, name');
         $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], 'id, attempt');
 
@@ -142,8 +142,13 @@ class observer {
                 $recipient->email = $email;
                 $recipient->firstname = get_string('pluginname', 'quizaccess_tagproctoring');
                 $recipient->lastname = get_string('email_recipient_lastname', 'quizaccess_tagproctoring');
+                $recipient->firstnamephonetic = '';
+                $recipient->lastnamephonetic = '';
+                $recipient->middlename = '';
+                $recipient->alternatename = '';
                 $recipient->mailformat = FORMAT_PLAIN;
                 $recipient->maildisplay = 1;
+                $recipient->lang = current_language();
                 $recipient->deleted = 0;
                 $recipient->suspended = 0;
                 $recipients[] = $recipient;
@@ -155,7 +160,7 @@ class observer {
         return get_users_by_capability(
             $context,
             'quizaccess/tagproctoring:viewreport',
-            'u.id, u.firstname, u.lastname, u.email, u.mailformat, u.lang',
+            'u.*',
             'u.lastname ASC'
         );
     }
