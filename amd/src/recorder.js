@@ -125,6 +125,10 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             return;
         }
         s.textContent = msg;
+        if (s.classList.contains('tagwiz-overlay-status') || elId === 'tagwiz-rs-status') {
+            s.className = 'tagwiz-overlay-status' + (type ? ' tagwiz-overlay-status--' + type : '');
+            return;
+        }
         s.className = 'tagwiz-status-msg' + (type ? ' alert alert-' + type + ' mt-2 py-1 px-2' : '');
     }
 
@@ -206,24 +210,6 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         }
 
         return null;
-    }
-
-    /**
-     * Return true if multiple-monitor detection is available and currently positive.
-     *
-     * @returns {boolean} True when an extended display setup is detected.
-     */
-    function hasExtendedScreen() {
-        return !!(window.screen && window.screen.isExtended === true);
-    }
-
-    /**
-     * Return true if the browser exposes the multi-monitor detection signal.
-     *
-     * @returns {boolean} True when the signal is available.
-     */
-    function canDetectExtendedScreen() {
-        return !!(window.screen && typeof window.screen.isExtended === 'boolean');
     }
 
     // ── AI Detection ─────────────────────────────────────────────────────────
@@ -401,6 +387,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         var total   = slides.length;
         var current = 0;
 
+        /** @returns {void} */
         function updateSlide() {
             for (var i = 0; i < slides.length; i++) {
                 slides[i].style.display = (i === current) ? 'flex' : 'none';
@@ -545,8 +532,8 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                 } else if (mediaRecorder.state === 'recording') {
                     if (elapsed < MIN_SEC) {
                         setStatus('tagwiz-rs-status',
-                            'Minimum ' + MIN_SEC + 's required — currently at ' + elapsed + 's. Keep scanning.',
-                            'warning');
+                            'Keep scanning - ' + elapsed + 's of ' + MIN_SEC + 's done.',
+                            '');
                         return;
                     }
                     clearInterval(tickInterval);
@@ -1002,7 +989,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.status === 'ok') {
-                        setStatus('tagwiz-selfie-status', 'Selfie saved.', 'success');
+                        setStatus('tagwiz-selfie-status', 'Selfie saved. You can continue.', 'success');
                         nextBtn.disabled = false;
                         markDone(2);
                     } else {
@@ -1160,7 +1147,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
             /* All good */
             stableFrames++;
             setGuide('rgba(34,197,94,.85)', 'Hold still...');
-            setStatus('tagwiz-id-status', 'Face and ID detected \u2014 hold steady...', 'success');
+            setStatus('tagwiz-id-status', 'Face and ID detected. Hold steady.', 'success');
 
             if (stableFrames >= 3 && !captureActive) {
                 startCountdown();
@@ -1349,7 +1336,11 @@ define("quizaccess_tagproctoring/recorder", [], function() {
     // ── Step 4 — Screen Share ────────────────────────────────────────────────
 
     /**
-     * Initialise the screen-share verification step.
+     * Initialise the final readiness step.
+     *
+     * Screen sharing is requested on the real attempt page by monitor.js. Asking
+     * here would trigger a second browser picker immediately after Moodle opens
+     * the quiz attempt, so this step only prepares the student for that prompt.
      */
     function initScreenShare() {
         var shareBtn    = el('tagwiz-ss-share');
@@ -1357,91 +1348,27 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         var chkScanEl   = el('tagwiz-chk-scan');
         var startBtn    = el('tagwiz-start-quiz');
         var multimonEl  = el('tagwiz-ss-multimon');
-        var recheckBtn  = el('tagwiz-ss-recheck');
         var beforeEl    = el('tagwiz-ss-before');
-        if (!shareBtn) { return; }
 
-        /**
-         * Request display media and validate the surface type and monitor count.
-         */
-        function attemptShare() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                setStatus('tagwiz-ss-status',
-                    'Screen sharing is not supported in this browser. Please use a current desktop browser.',
-                    'danger');
-                return;
-            }
-
-            navigator.mediaDevices.getDisplayMedia({video: {displaySurface: 'monitor'}, audio: false})
-                .then(function(stream) {
-                    var track    = stream.getVideoTracks()[0];
-                    var settings = track ? track.getSettings() : {};
-                    stream.getTracks().forEach(function(t) { t.stop(); });
-
-                    if (settings.displaySurface && settings.displaySurface !== 'monitor') {
-                        setStatus('tagwiz-ss-status',
-                            'You chose "' + settings.displaySurface +
-                            '" \u2014 you must select "Entire Screen". Click Share Screen and try again.',
-                            'danger');
-                        return;
-                    }
-
-                    if (hasExtendedScreen()) {
-                        if (multimonEl) { multimonEl.style.display = 'block'; }
-                        if (beforeEl)   { beforeEl.style.display   = 'none';  }
-                        setStatus('tagwiz-ss-status', '', '');
-                        return;
-                    }
-
-                    if (multimonEl) { multimonEl.style.display = 'none'; }
-                    if (beforeEl)   { beforeEl.style.display   = 'none'; }
-                    if (!settings.displaySurface || !canDetectExtendedScreen()) {
-                        setStatus('tagwiz-ss-status',
-                            'Screen sharing confirmed. Some browser-level screen checks are unavailable here, so your session will be reviewed with the recorded evidence.',
-                            'warning');
-                    } else {
-                        setStatus('tagwiz-ss-status', '', '');
-                    }
-                    shareBtn.style.display = 'none';
-                    markDone(4);
-                    if (chkScanEl && !(cfg && cfg.enableRoomScan !== 0)) {
-                        chkScanEl.style.display = 'none';
-                    }
-                    if (checklistEl) { checklistEl.style.display = 'block'; }
-                })
-                .catch(function(err) {
-                    if (err.name === 'NotAllowedError') {
-                        setStatus('tagwiz-ss-status',
-                            'Screen share was cancelled. Click Share Screen and allow access.',
-                            'warning');
-                    } else {
-                        setStatus('tagwiz-ss-status', 'Screen sharing error: ' + err.message, 'danger');
-                    }
-                });
+        if (shareBtn) {
+            shareBtn.style.display = 'none';
         }
-
-        shareBtn.addEventListener('click', attemptShare);
-
-        if (recheckBtn) {
-            recheckBtn.addEventListener('click', function() {
-                if (!canDetectExtendedScreen()) {
-                    if (multimonEl) { multimonEl.style.display = 'none'; }
-                    if (beforeEl)   { beforeEl.style.display   = 'block'; }
-                    setStatus('tagwiz-ss-status',
-                        'This browser does not expose monitor-count detection. Click Share Screen to continue.',
-                        'warning');
-                } else if (!hasExtendedScreen()) {
-                    if (multimonEl) { multimonEl.style.display = 'none'; }
-                    if (beforeEl)   { beforeEl.style.display   = 'block'; }
-                    setStatus('tagwiz-ss-status',
-                        'Single screen detected. Click Share Screen to continue.', 'success');
-                } else {
-                    setStatus('tagwiz-ss-status',
-                        'Multiple screens still detected. Disconnect or mirror your displays first.',
-                        'warning');
-                }
-            });
+        if (multimonEl) {
+            multimonEl.style.display = 'none';
         }
+        if (beforeEl) {
+            beforeEl.style.display = 'block';
+        }
+        if (chkScanEl && !(cfg && cfg.enableRoomScan !== 0)) {
+            chkScanEl.style.display = 'none';
+        }
+        if (checklistEl) {
+            checklistEl.style.display = 'block';
+        }
+        markDone(4);
+        setStatus('tagwiz-ss-status',
+            'After you start, choose Entire Screen when your browser asks.',
+            'success');
 
         if (startBtn) {
             startBtn.addEventListener('click', function() {
@@ -1493,10 +1420,23 @@ define("quizaccess_tagproctoring/recorder", [], function() {
 
     // ── Init ─────────────────────────────────────────────────────────────────
 
+    var wizardStarted = false;
+
     /**
      * Initialise the pre-exam wizard.
+     *
+     * @returns {void}
      */
     function initWizard() {
+        if (wizardStarted) {
+            return;
+        }
+        wizardStarted = true;
+
+        var wrap = el('tagwiz-wrap');
+        if (wrap) {
+            wrap.style.display = '';
+        }
         showStep(0);
         initRules();
         initScreenShare(); // attach listener upfront; step panel is hidden until reached
@@ -1510,6 +1450,40 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         }
     }
 
+    /**
+     * Find Moodle's quiz start-attempt control on the quiz view page.
+     *
+     * @returns {HTMLElement|null} Attempt trigger element, or null.
+     */
+    function findAttemptTrigger() {
+        var selectors = [
+            'form[action*="/mod/quiz/startattempt.php"] button[type="submit"]',
+            'form[action*="/mod/quiz/startattempt.php"] input[type="submit"]',
+            'form[action*="startattempt.php"] button[type="submit"]',
+            'form[action*="startattempt.php"] input[type="submit"]',
+            'a[href*="/mod/quiz/startattempt.php"]',
+            'a[href*="startattempt.php"]'
+        ];
+        var trigger = document.querySelector(selectors.join(','));
+
+        if (trigger) {
+            return trigger;
+        }
+
+        var wrap = el('tagwiz-wrap');
+        if (!wrap) {
+            return null;
+        }
+
+        var form = wrap.closest('form');
+        if (form && form.getAttribute('action') &&
+                form.getAttribute('action').indexOf('startattempt.php') !== -1) {
+            return form.querySelector('button[type="submit"], input[type="submit"]');
+        }
+
+        return null;
+    }
+
     return {
         /**
          * Initialise the recorder module with server-provided config.
@@ -1518,10 +1492,41 @@ define("quizaccess_tagproctoring/recorder", [], function() {
          */
         init: function(config) {
             cfg = config;
+
+            /**
+             * @returns {void}
+             */
+            function setup() {
+                var wrap = document.getElementById('tagwiz-wrap');
+                var modal = wrap ? wrap.closest('.modal') : null;
+                var attemptTrigger = findAttemptTrigger();
+
+                if (modal && !modal.classList.contains('show')) {
+                    // Preflight form is inside a hidden Bootstrap modal (pre-rendered on the
+                    // quiz view page). Only start the wizard after the student clicks
+                    // "Attempt quiz" and the modal is fully open.
+                    modal.addEventListener('shown.bs.modal', function onShown() {
+                        modal.removeEventListener('shown.bs.modal', onShown);
+                        initWizard();
+                    });
+                } else if (attemptTrigger) {
+                    // Preflight markup is on the quiz view page. Keep it hidden until Moodle's
+                    // "Attempt quiz" control is used; if Moodle navigates to a separate
+                    // preflight page, the wizard will initialise on that page instead.
+                    attemptTrigger.addEventListener('click', function onAttemptClick() {
+                        attemptTrigger.removeEventListener('click', onAttemptClick);
+                        window.setTimeout(initWizard, 0);
+                    });
+                } else {
+                    // Standalone preflight form page, or modal already open.
+                    initWizard();
+                }
+            }
+
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initWizard);
+                document.addEventListener('DOMContentLoaded', setup);
             } else {
-                initWizard();
+                setup();
             }
         }
     };

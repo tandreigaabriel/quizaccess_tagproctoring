@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'quizaccess_tagproctoring';
-$plugin->version = 2026041501;
-$plugin->requires = 2022112800; // Moodle 4.1+.
+$plugin->version = 2026070507;
+$plugin->requires = 2024100701; // Moodle 4.5+.
 $plugin->maturity = MATURITY_ALPHA;
 $plugin->release = '1.0.0';

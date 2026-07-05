@@ -9,6 +9,7 @@
                 <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
                 <FIELD NAME="enableroomscan" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1"/>
                 <FIELD NAME="durationsec" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="45"/>
+                <FIELD NAME="rescanperattempt" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1 = require new room scan for every new attempt"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -28,6 +29,7 @@
                 <FIELD NAME="idphoto_filename" TYPE="char" LENGTH="255" NOTNULL="false"/>
                 <FIELD NAME="scan_objects" TYPE="text" NOTNULL="false"/>
                 <FIELD NAME="scan_suspicious" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="needs_rescan" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1 = teacher granted student a rescan"/>
                 <FIELD NAME="face_match_verified" TYPE="int" LENGTH="2" NOTNULL="false" COMMENT="1=match 0=mismatch -1=unknown"/>
                 <FIELD NAME="face_match_distance" TYPE="number" LENGTH="5" DECIMALS="3" NOTNULL="false" COMMENT="Euclidean distance between face descriptors (0.0–2.0)"/>
             </FIELDS>
@@ -36,6 +38,7 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="quizid_userid" UNIQUE="false" FIELDS="quizid, userid"/>
+                <INDEX NAME="attemptid" UNIQUE="false" FIELDS="attemptid"/>
             </INDEXES>
         </TABLE>
 
@@ -54,6 +57,7 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="quizid_userid_attemptid" UNIQUE="false" FIELDS="quizid, userid, attemptid"/>
+                <INDEX NAME="attemptid" UNIQUE="false" FIELDS="attemptid"/>
             </INDEXES>
         </TABLE>
 
@@ -73,6 +77,7 @@
             <INDEXES>
                 <INDEX NAME="quizid_userid_attemptid" UNIQUE="false" FIELDS="quizid, userid, attemptid"/>
                 <INDEX NAME="eventtype" UNIQUE="false" FIELDS="eventtype"/>
+                <INDEX NAME="attemptid_event_time" UNIQUE="false" FIELDS="attemptid, eventtype, timecreated"/>
             </INDEXES>
         </TABLE>
 
@@ -83,6 +88,9 @@
                 <FIELD NAME="valid_override" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
                 <FIELD NAME="overriddenby" TYPE="int" LENGTH="10" NOTNULL="true"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+                <FIELD NAME="reviewed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="1 = teacher has reviewed this attempt"/>
+                <FIELD NAME="reviewedby" TYPE="int" LENGTH="10" NOTNULL="false"/>
+                <FIELD NAME="timereviewed" TYPE="int" LENGTH="10" NOTNULL="false"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

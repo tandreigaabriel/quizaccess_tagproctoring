@@ -137,8 +137,9 @@ try {
         }
     }
 
-    $record->scan_objects = $scanobjects;
+    $record->scan_objects    = $scanobjects;
     $record->scan_suspicious = $scansuspicious;
+    $record->needs_rescan    = 0; // Clear any teacher-granted rescan flag.
 
     $existingrow = $DB->get_record(
         'quizaccess_tagproctoring_scan',

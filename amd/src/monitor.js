@@ -33,7 +33,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
 
     // Face-turn / face-away detection.
     var faceDetectModel = null;
-    var lastFaceTurnShot = 0;     // Date.now() of last face-turn screenshot (rate-limit)
     var noFaceCount     = 0;      // consecutive 3-s polls with no face in frame
     var lastNoFaceShot  = 0;      // Date.now() of last face-away screenshot
 
@@ -398,11 +397,6 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
                 if (!lm || lm.length < 3) {
                     return;
                 }
-                var rEyeX   = lm[0][0];
-                var lEyeX   = lm[1][0];
-                var noseX   = lm[2][0];
-                var eyeMid  = (rEyeX + lEyeX) / 2;
-                var eyeDist = Math.abs(lEyeX - rEyeX);
                 // Normal left/right face movement is not treated as cheating evidence.
             }).catch(function() {});
         }, 3000);
@@ -893,7 +887,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         } else {
             title = 'Unsupported Browser';
             msg   = 'This secure exam requires camera, screen sharing, fullscreen, and HTTPS support.';
-            sub   = 'Missing: ' + caps.missing.join(', ') + '. Please update your browser or reopen this page in a supported desktop browser.';
+            sub   = 'Missing: ' + caps.missing.join(', ') +
+                '. Please update your browser or reopen this page in a supported desktop browser.';
         }
 
         var overlay = document.createElement('div');

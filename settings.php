@@ -110,7 +110,7 @@ if ($ADMIN->fulltree) {
         get_string('settings_license_key', 'quizaccess_tagproctoring'),
         get_string('settings_license_key_desc', 'quizaccess_tagproctoring'),
         '',
-        PARAM_RAW_TRIMMED
+        PARAM_TEXT
     ));
 
     // -------------------------------------------------------------------------
@@ -173,12 +173,38 @@ if ($ADMIN->fulltree) {
         1
     ));
 
+    // Email alerts for high-risk attempts.
+    $settings->add(new admin_setting_configcheckbox(
+        'quizaccess_tagproctoring/emailalerts',
+        get_string('settings_emailalerts', 'quizaccess_tagproctoring'),
+        get_string('settings_emailalerts_desc', 'quizaccess_tagproctoring'),
+        1
+    ));
+
+    // Optional fixed recipients for post-attempt alert emails.
+    $settings->add(new admin_setting_configtextarea(
+        'quizaccess_tagproctoring/emailrecipients',
+        get_string('settings_emailrecipients', 'quizaccess_tagproctoring'),
+        get_string('settings_emailrecipients_desc', 'quizaccess_tagproctoring'),
+        '',
+        PARAM_TEXT
+    ));
+
     // Max screenshots per attempt.
     $settings->add(new admin_setting_configtext(
         'quizaccess_tagproctoring/maxscreenshots',
         get_string('settings_maxscreenshots', 'quizaccess_tagproctoring'),
         get_string('settings_maxscreenshots_desc', 'quizaccess_tagproctoring'),
         20,
+        PARAM_INT
+    ));
+
+    // Max suspicious events per attempt.
+    $settings->add(new admin_setting_configtext(
+        'quizaccess_tagproctoring/maxevents',
+        get_string('settings_maxevents', 'quizaccess_tagproctoring'),
+        get_string('settings_maxevents_desc', 'quizaccess_tagproctoring'),
+        200,
         PARAM_INT
     ));
 
@@ -195,7 +221,7 @@ if ($ADMIN->fulltree) {
         'quizaccess_tagproctoring/ai_confidence_threshold',
         get_string('settings_ai_confidence_threshold', 'quizaccess_tagproctoring'),
         get_string('settings_ai_confidence_threshold_desc', 'quizaccess_tagproctoring'),
-        '0.35',
+        get_string('settings_ai_confidence_threshold_default', 'quizaccess_tagproctoring'),
         PARAM_TEXT
     ));
 
@@ -211,7 +237,7 @@ if ($ADMIN->fulltree) {
         'quizaccess_tagproctoring/ai_flagged_objects',
         get_string('settings_ai_flagged_objects', 'quizaccess_tagproctoring'),
         get_string('settings_ai_flagged_objects_desc', 'quizaccess_tagproctoring'),
-        "cell phone\nbook\ntablet\nremote\nextra_person\nlaptop",
+        get_string('settings_ai_flagged_objects_default', 'quizaccess_tagproctoring'),
         PARAM_TEXT
     ));
 
@@ -219,7 +245,7 @@ if ($ADMIN->fulltree) {
         'quizaccess_tagproctoring/faceturn_sensitivity',
         get_string('settings_faceturn_sensitivity', 'quizaccess_tagproctoring'),
         get_string('settings_faceturn_sensitivity_desc', 'quizaccess_tagproctoring'),
-        '0.30',
+        get_string('settings_faceturn_sensitivity_default', 'quizaccess_tagproctoring'),
         PARAM_TEXT
     ));
 

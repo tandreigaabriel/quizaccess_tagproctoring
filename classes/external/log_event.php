@@ -100,11 +100,29 @@ class log_event extends external_api {
             }
         }
 
+        // Server-side guard rails for large exams: cap rows per attempt and
+        // suppress repeated identical events fired within a few seconds.
+        $maxevents = (int) get_config('quizaccess_tagproctoring', 'maxevents') ?: 200;
+        if ($DB->count_records('quizaccess_tagproctoring_events', ['attemptid' => $attemptid]) >= $maxevents) {
+            return ['status' => 'ok'];
+        }
+
+        $now = time();
+        $lastsameevent = $DB->get_field_sql(
+            'SELECT MAX(timecreated)
+               FROM {quizaccess_tagproctoring_events}
+              WHERE attemptid = ? AND eventtype = ?',
+            [$attemptid, $eventtype]
+        );
+        if ($lastsameevent && ($now - (int) $lastsameevent) < 5) {
+            return ['status' => 'ok'];
+        }
+
         $DB->insert_record('quizaccess_tagproctoring_events', (object) [
             'quizid'      => $cm->instance,
             'userid'      => $USER->id,
             'attemptid'   => $attemptid,
-            'timecreated' => time(),
+            'timecreated' => $now,
             'eventtype'   => $eventtype,
             'detail'      => $detail,
         ]);

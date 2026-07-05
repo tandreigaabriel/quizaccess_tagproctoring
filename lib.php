@@ -72,67 +72,18 @@ function quizaccess_tagproctoring_get_report_url($cid, $cmid, $quizid) {
 }
 
 /**
- * Calculate risk level based on events.
- *
- * @param array $events
- * @return string
- */
-function quizaccess_tagproctoring_get_risk_level($events) {
-    if (empty($events)) {
-        return 'low';
-    }
-
-    $highrisktypes = ['screenshare', 'screensharestop', 'multiplescreen', 'multiplefaces', 'noface'];
-    $mediumrisktypes = [
-        'fullscreenexit',
-        'tabswitch',
-        'windowblur',
-        'visibilityhidden',
-        'copypaste',
-        'devtools',
-        'capabilitywarning',
-    ];
-
-    foreach ($events as $event) {
-        if (in_array($event->eventtype, $highrisktypes)) {
-            return 'high';
-        }
-    }
-
-    foreach ($events as $event) {
-        if (in_array($event->eventtype, $mediumrisktypes)) {
-            return 'medium';
-        }
-    }
-
-    return 'low';
-}
-
-/**
- * Get risk CSS class.
- *
- * @param string $risklevel
- * @return string
- */
-function quizaccess_tagproctoring_get_risk_class($risklevel) {
-    switch ($risklevel) {
-        case 'high':
-            return 'text-danger';
-        case 'medium':
-            return 'text-warning';
-        default:
-            return 'text-success';
-    }
-}
-
-/**
  * Calculate risk score and level for one attempt.
  *
- * @param array $eventcounts  Associative array of eventtype => count.
- * @param bool  $scansuspicious  Whether the room scan was flagged.
+ * @param array    $eventcounts   Associative array of eventtype => count.
+ * @param bool     $scansuspicious  Whether the room scan was flagged.
+ * @param int|null $facematch     Face-match result: 1=match, 0=mismatch, -1=unknown, null=not checked.
  * @return array  ['score' => int, 'risk' => 'high'|'medium'|'low']
  */
-function quizaccess_tagproctoring_calculate_attempt_risk(array $eventcounts, bool $scansuspicious): array {
+function quizaccess_tagproctoring_calculate_attempt_risk(
+    array $eventcounts,
+    bool $scansuspicious,
+    ?int $facematch = null
+): array {
     $plg = 'quizaccess_tagproctoring';
 
     $highrisk = [
@@ -171,6 +122,15 @@ function quizaccess_tagproctoring_calculate_attempt_risk(array $eventcounts, boo
 
     if ($scansuspicious) {
         $score += $scanscore;
+    }
+
+    // Face-match penalty (selfie vs ID photo comparison during room scan).
+    if ($facematch !== null) {
+        if ($facematch === 0) {
+            $score += 40; // clear mismatch
+        } else if ($facematch === -1) {
+            $score += 10; // unknown / no face detected in selfie
+        }
     }
 
     $risk = $score >= $thresholdhigh ? 'high' : ($score >= $thresholdmedium ? 'medium' : 'low');

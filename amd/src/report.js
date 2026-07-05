@@ -468,6 +468,15 @@ define("quizaccess_tagproctoring/report", [], function() {
                     'onclick="tagRepSetOverride(' + student.userid + ',' + a.id + ',1)">' +
                     '\u2713 Mark as Valid</button> ';
             }
+            if (a.reviewed) {
+                html += '<button class="tagrep-btn" style="background:#6b7280;color:#fff;" ' +
+                    'onclick="tagRepSetReviewed(' + student.userid + ',' + a.id + ',0)">' +
+                    '\ud83d\udc41 Reviewed (undo)</button> ';
+            } else {
+                html += '<button class="tagrep-btn tagrep-btn--outline" ' +
+                    'onclick="tagRepSetReviewed(' + student.userid + ',' + a.id + ',1)">' +
+                    '\ud83d\udc41 Mark as Reviewed</button> ';
+            }
             html += '<a href="' + esc(a.review_url) +
                 '" target="_blank" class="tagrep-btn tagrep-btn--outline">Quiz Results \u2197</a>';
 
@@ -903,13 +912,50 @@ define("quizaccess_tagproctoring/report", [], function() {
             .catch(function() {alert('Network error deleting events.');});
     }
 
+    /**
+     * Toggle the "reviewed" flag for an attempt.
+     *
+     * @param {number} uid       User ID.
+     * @param {number} attemptId Attempt ID.
+     * @param {number} reviewed  1 to mark reviewed, 0 to clear.
+     */
+    function tagRepSetReviewed(uid, attemptId, reviewed) {
+        var fd = new FormData();
+        fd.append('attemptid', attemptId);
+        fd.append('reviewed', reviewed ? 1 : 0);
+        fd.append('sesskey', CFG2.sesskey);
+
+        fetch(CFG2.setReviewedUrl, {method: 'POST', body: fd, credentials: 'same-origin'})
+            .then(function(r) {return r.json();})
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    DATA.forEach(function(s) {
+                        if (s.userid === uid) {
+                            s.attempts.forEach(function(a) {
+                                if (a.id === attemptId) {
+                                    a.reviewed = !!reviewed;
+                                }
+                            });
+                        }
+                    });
+                    if (currentStudent && currentStudent.userid === uid) {
+                        renderSessions(currentStudent);
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'unknown'));
+                }
+            })
+            .catch(function() {alert('Network error saving reviewed status.');});
+    }
+
     return {
         /**
          * Initialise the report UI with server-provided student data and action URLs.
          *
          * @param {Array}  data Student/attempt data array.
          * @param {Object} cfg  Action URLs and sesskey: setOverrideUrl, deleteShotsUrl,
-         *                      deleteEventsUrl, deleteScanBase, sesskey.
+         *                      deleteEventsUrl, deleteScanBase, setReviewedUrl,
+         *                      grantRescanUrl, sesskey, quizid.
          */
         init: function(data, cfg) {
             // Student data may be passed inline or embedded in a <script id="tagrep-data"> tag
@@ -932,6 +978,7 @@ define("quizaccess_tagproctoring/report", [], function() {
             window.tagRepSetOverride = tagRepSetOverride;
             window.tagRepDeleteScreenshots = tagRepDeleteScreenshots;
             window.tagRepDeleteEvents = tagRepDeleteEvents;
+            window.tagRepSetReviewed = tagRepSetReviewed;
 
             renderStudentList(DATA);
         }

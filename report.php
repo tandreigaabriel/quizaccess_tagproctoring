@@ -127,17 +127,21 @@ foreach ($DB->get_records('quizaccess_tagproctoring_scan', ['quizid' => $quiz->i
 }
 
 $overridesbyattempt = [];
+$reviewedbyattempt  = [];
 if ($attemptids) {
     [$insql2, $inparams2] = $DB->get_in_or_equal(array_values($attemptids));
 
     foreach ($DB->get_records_select('quizaccess_tagproctoring_overrides', "attemptid $insql2", $inparams2) as $ov) {
         $overridesbyattempt[(int) $ov->attemptid] = (bool) $ov->valid_override;
+        $reviewedbyattempt[(int) $ov->attemptid]  = !empty($ov->reviewed);
     }
 }
 
-$setoverrideurl = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_override.php'))->out(false);
-$deleteshotsurl = (new moodle_url('/mod/quiz/accessrule/tagproctoring/delete_screenshots.php'))->out(false);
+$setoverrideurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_override.php'))->out(false);
+$deleteshotsurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/delete_screenshots.php'))->out(false);
 $deleteeventsurl = (new moodle_url('/mod/quiz/accessrule/tagproctoring/delete_events.php'))->out(false);
+$setreviewedurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_reviewed.php'))->out(false);
+$grantrescanurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/grant_rescan.php'))->out(false);
 $deletescanbase = (new moodle_url(
     '/mod/quiz/accessrule/tagproctoring/delete_scan.php',
     ['cid' => $cid, 'cmid' => $cmid, 'qid' => $qid]
@@ -145,68 +149,8 @@ $deletescanbase = (new moodle_url(
 
 $reportsesskey = sesskey();
 
-/**
- * Calculate risk score.
- */
-function quizaccess_tagproctoring_risk(array $events, $scan): array {
-    $score = 0;
-
-    $highrisk = [
-    'screenshare' => 50,
-    'screensharestop' => 50,
-    'multiplescreen' => 50,
-    'multiplefaces' => 40,
-    'noface' => 20,
-    ];
-
-    $medrisk = [
-    'fullscreenexit' => 20,
-    'tabswitch' => 10,
-    'windowblur' => 10,
-    'visibilityhidden' => 10,
-    'copypaste' => 10,
-    'devtools' => 5,
-    'capabilitywarning' => 20,
-    ];
-
-    $counts = [];
-
-    foreach ($events as $e) {
-        $counts[$e->eventtype] = ($counts[$e->eventtype] ?? 0) + 1;
-    }
-
-    foreach ($highrisk as $t => $pts) {
-        if (!empty($counts[$t])) {
-            $score += $pts;
-        }
-    }
-
-    foreach ($medrisk as $t => $pts) {
-        if (!empty($counts[$t])) {
-            $score += min($pts * $counts[$t], $pts * 3);
-        }
-    }
-
-    if ($scan && !empty($scan->scan_suspicious)) {
-        $score += 30;
-    }
-
-    // Face-match failure is a strong identity signal.
-    if ($scan && isset($scan->face_match_verified)) {
-        if ((int) $scan->face_match_verified === 0) {
-            $score += 40; // clear mismatch
-        }
-        // -1 (unknown/no face) is a minor flag — invigilator should check manually.
-        if ((int) $scan->face_match_verified === -1) {
-            $score += 10;
-        }
-    }
-
-    return [
-    'score' => $score,
-    'level' => $score >= 50 ? 'invalid' : ($score >= 20 ? 'review' : 'valid'),
-    ];
-}
+// Risk mapping from lib.php vocabulary to report.js vocabulary.
+$riskmap = ['high' => 'invalid', 'medium' => 'review', 'low' => 'valid'];
 
 /**
  * Generate pluginfile URL.
@@ -232,10 +176,17 @@ foreach ($attempts as $attempt) {
     $uid = (int) $attempt->userid;
 
     $events = $eventsbyattempt[$attempt->id] ?? [];
-    $shots = $shotsbyattempt[$attempt->id] ?? [];
-    $scan = $scansbyuser[$uid] ?? null;
+    $shots  = $shotsbyattempt[$attempt->id] ?? [];
+    $scan   = $scansbyuser[$uid] ?? null;
 
-    $risk = quizaccess_tagproctoring_risk($events, $scan);
+    $eventcounts = [];
+    foreach ($events as $e) {
+        $eventcounts[$e->eventtype] = ($eventcounts[$e->eventtype] ?? 0) + 1;
+    }
+    $scansuspicious = $scan && !empty($scan->scan_suspicious);
+    $facematch      = ($scan && isset($scan->face_match_verified)) ? (int) $scan->face_match_verified : null;
+    $risk           = quizaccess_tagproctoring_calculate_attempt_risk($eventcounts, $scansuspicious, $facematch);
+    $risklevel      = $riskmap[$risk['risk']] ?? 'valid';
 
     $shotlist = [];
 
@@ -268,13 +219,14 @@ foreach ($attempts as $attempt) {
 
     if ($scan) {
         $scanjs = [
-        'video_url'          => quizaccess_tagproctoring_pluginfile_url($context, 'roomscan', $scan->userid, $scan->filename ?? ''),
-        'selfie_url'         => quizaccess_tagproctoring_pluginfile_url($context, 'selfie', $scan->userid, $scan->selfie_filename ?? ''),
-        'idphoto_url'        => quizaccess_tagproctoring_pluginfile_url($context, 'idphoto', $scan->userid, $scan->idphoto_filename ?? ''),
-        'objects'            => $scan->scan_objects ? (json_decode($scan->scan_objects, true) ?: []) : [],
-        'suspicious'         => !empty($scan->scan_suspicious),
+        'video_url'           => quizaccess_tagproctoring_pluginfile_url($context, 'roomscan', $scan->userid, $scan->filename ?? ''),
+        'selfie_url'          => quizaccess_tagproctoring_pluginfile_url($context, 'selfie', $scan->userid, $scan->selfie_filename ?? ''),
+        'idphoto_url'         => quizaccess_tagproctoring_pluginfile_url($context, 'idphoto', $scan->userid, $scan->idphoto_filename ?? ''),
+        'objects'             => $scan->scan_objects ? (json_decode($scan->scan_objects, true) ?: []) : [],
+        'suspicious'          => !empty($scan->scan_suspicious),
         'face_match_verified' => isset($scan->face_match_verified) ? (int) $scan->face_match_verified : null,
         'face_match_distance' => isset($scan->face_match_distance) ? (float) $scan->face_match_distance : null,
+        'needs_rescan'        => !empty($scan->needs_rescan),
         ];
     }
 
@@ -294,9 +246,10 @@ foreach ($attempts as $attempt) {
     'timefinish' => (int) $attempt->timefinish,
     'sumgrades' => isset($attempt->sumgrades) ? (float) $attempt->sumgrades : null,
     'quiz_sumgrades' => (float) $quiz->sumgrades,
-    'risk_score' => $risk['score'],
-    'risk_level' => $risk['level'],
+    'risk_score'     => $risk['score'],
+    'risk_level'     => $risklevel,
     'override_valid' => $overridesbyattempt[(int) $attempt->id] ?? false,
+    'reviewed'       => $reviewedbyattempt[(int) $attempt->id] ?? false,
     'review_url' => (new moodle_url('/mod/quiz/review.php', ['attempt' => $attempt->id]))->out(),
     'scan' => $scanjs,
     'events' => $eventlist,
@@ -305,6 +258,21 @@ foreach ($attempts as $attempt) {
 }
 
 $studentslist = array_values($studentsdata);
+
+// Compute summary counts for the stats panel.
+$stathigh = $statreview = $statvalid = 0;
+foreach ($studentslist as $s) {
+    foreach ($s['attempts'] as $a) {
+        $eff = $a['override_valid'] ? 'valid' : $a['risk_level'];
+        if ($eff === 'invalid') {
+            $stathigh++;
+        } else if ($eff === 'review') {
+            $statreview++;
+        } else {
+            $statvalid++;
+        }
+    }
+}
 
 // Pass action URLs only via js_call_amd (small, safe).
 // Student data is embedded as a JSON script tag to avoid the 1024-char limit.
@@ -315,7 +283,10 @@ $PAGE->requires->js_call_amd('quizaccess_tagproctoring/report', 'init', [
         'deleteShotsUrl'  => $deleteshotsurl,
         'deleteEventsUrl' => $deleteeventsurl,
         'deleteScanBase'  => $deletescanbase,
+        'setReviewedUrl'  => $setreviewedurl,
+        'grantRescanUrl'  => $grantrescanurl,
         'sesskey'         => $reportsesskey,
+        'quizid'          => (int) $quiz->id,
     ],
 ]);
 
@@ -326,6 +297,26 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
 ?>
 
 <script id="tagrep-data" type="application/json"><?= $studentsjson ?></script>
+
+<div class="tagrep-stats-bar">
+  <div class="tagrep-stat">
+    <span class="tagrep-stat-num"><?= $totalattempts ?></span>
+    <span class="tagrep-stat-lbl">Total Attempts</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--high">
+    <span class="tagrep-stat-num"><?= $stathigh ?></span>
+    <span class="tagrep-stat-lbl">&#x26d4; High Risk</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--review">
+    <span class="tagrep-stat-num"><?= $statreview ?></span>
+    <span class="tagrep-stat-lbl">&#x26a0; Needs Review</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--valid">
+    <span class="tagrep-stat-num"><?= $statvalid ?></span>
+    <span class="tagrep-stat-lbl">&#x2713; Valid</span>
+  </div>
+</div>
+
 <div class="tagrep-wrap" id="tagrep-root">
 
 

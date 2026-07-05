@@ -76,6 +76,12 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
         $mform->setDefault('tagproctoring_durationsec', $existing ? (int) $existing->durationsec : 45);
         $mform->disabledIf('tagproctoring_durationsec', 'tagproctoring_enabled', 'notchecked');
         $mform->disabledIf('tagproctoring_durationsec', 'tagproctoring_enableroomscan', 'notchecked');
+
+        $mform->addElement('advcheckbox', 'tagproctoring_rescanperattempt',
+            get_string('rescanperattempt', 'quizaccess_tagproctoring'));
+        $mform->setDefault('tagproctoring_rescanperattempt', $existing ? (int) $existing->rescanperattempt : 0);
+        $mform->disabledIf('tagproctoring_rescanperattempt', 'tagproctoring_enabled', 'notchecked');
+        $mform->disabledIf('tagproctoring_rescanperattempt', 'tagproctoring_enableroomscan', 'notchecked');
     }
 
     /**
@@ -89,12 +95,13 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
         $record = $DB->get_record('quizaccess_tagproctoring_settings', ['quizid' => $quiz->id]);
 
         $data = (object) [
-        'quizid'          => $quiz->id,
-        'enabled'         => !empty($quiz->tagproctoring_enabled) ? 1 : 0,
-        'enableroomscan'  => !empty($quiz->tagproctoring_enableroomscan) ? 1 : 0,
-        'durationsec'     => !empty($quiz->tagproctoring_durationsec)
-        ? (int) $quiz->tagproctoring_durationsec
-        : 45,
+        'quizid'            => $quiz->id,
+        'enabled'           => !empty($quiz->tagproctoring_enabled) ? 1 : 0,
+        'enableroomscan'    => !empty($quiz->tagproctoring_enableroomscan) ? 1 : 0,
+        'durationsec'       => !empty($quiz->tagproctoring_durationsec)
+            ? (int) $quiz->tagproctoring_durationsec
+            : 45,
+        'rescanperattempt'  => !empty($quiz->tagproctoring_rescanperattempt) ? 1 : 0,
         ];
 
         if ($record) {
@@ -167,7 +174,17 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
         $perquizrs = ($quizsetting && isset($quizsetting->enableroomscan)) ? (bool) $quizsetting->enableroomscan : true;
         $roomscanrequired = $perquizrs;
 
+        // Auto-rescan: a new attempt (attemptid=0) always requires the wizard when this is on.
+        if ((int) $attemptid === 0 && $quizsetting && !empty($quizsetting->rescanperattempt)) {
+            return true;
+        }
+
         $scanok = !$roomscanrequired || !empty($scan->filename);
+
+        // Teacher has requested the student perform a new scan (manual fallback).
+        if ($scan && !empty($scan->needs_rescan)) {
+            return true;
+        }
 
         if ($scan && $scanok && !empty($scan->selfie_filename) && !empty($scan->idphoto_filename)) {
             return false;

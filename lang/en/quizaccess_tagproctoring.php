@@ -34,9 +34,15 @@ $string['event_contextmenu'] = 'Right-click detected';
 $string['event_copypaste'] = 'Copy/paste detected';
 $string['event_devtools'] = 'DevTools opened';
 $string['event_faceturn'] = 'Face turned away';
+$string['event_faceaway'] = 'Face not visible';
 $string['event_fullscreenexit'] = 'Exited full screen';
 $string['event_multiplescreen'] = 'Multiple screens detected';
+$string['event_multiplefaces'] = 'Multiple faces detected';
 $string['event_nocamera'] = 'Camera unavailable';
+$string['event_noface'] = 'No face detected';
+$string['event_capabilitywarning'] = 'Browser capability warning';
+$string['event_screensharefailed'] = 'Screen share restart failed';
+$string['event_sessionstart'] = 'Session started';
 $string['event_screenshare'] = 'Screen share detected';
 $string['event_screensharestop'] = 'Screen share stopped';
 $string['event_tabswitch'] = 'Left exam view';
@@ -59,6 +65,7 @@ $string['violation_faceturn'] = 'Face Turned Away';
 $string['violation_multiplefaces'] = 'Multiple Faces During Exam';
 
 $string['idphotorequired'] = 'You must photograph your ID before starting the attempt.';
+$string['rescanperattempt'] = 'Require new room scan for each attempt';
 $string['pluginname'] = 'TAG Proctoring';
 
 $string['report_empty'] = 'No proctoring records found for this quiz.';
@@ -116,6 +123,8 @@ $string['settings_enablescreenshots_desc'] = 'Capture periodic webcam screenshot
 $string['settings_general'] = 'TAG Proctoring Settings';
 $string['settings_maxscreenshots'] = 'Max screenshots per attempt';
 $string['settings_maxscreenshots_desc'] = 'Maximum number of webcam screenshots to store per quiz attempt.';
+$string['settings_maxevents'] = 'Max event logs per attempt';
+$string['settings_maxevents_desc'] = 'Maximum number of suspicious event rows to store for one quiz attempt. This protects the database during large concurrent exams. Default: 200.';
 $string['settings_retentiondays'] = 'Data retention period (days)';
 $string['settings_retentiondays_desc'] = 'Number of days to keep room scan videos and screenshots before automatic deletion.';
 $string['settings_screenshotinterval'] = 'Screenshot interval (seconds)';
@@ -127,7 +136,7 @@ $string['task_renew_license'] = 'TAG Proctoring: weekly license token renewal';
 
 // License settings.
 $string['settings_license'] = 'TAG Proctoring License';
-$string['settings_license_desc'] = 'Enter the license key provided by TAG Web Design. To request a free 60-day trial key, contact <a href="mailto:andrei@tandreig.com">andrei@tandreig.com</a>.';
+$string['settings_license_desc'] = 'Enter the licence key delivered for this site, including keys issued after a Moodle Marketplace purchase. Activation verifies the key against the TAG Proctoring licence service.';
 $string['settings_license_key'] = 'License key';
 $string['settings_license_key_desc'] = 'Paste your license key here and save. Activation is automatic.';
 
@@ -146,7 +155,8 @@ $string['license_domain']  = 'Domain';
 $string['license_activated']         = 'License activated successfully.';
 $string['license_invalid_key']       = 'Invalid or revoked license key. Please check your key and try again.';
 $string['license_server_unreachable'] = 'License server unreachable. Please try again later.';
-$string['license_trial_local']       = 'Trial token issued locally (license server not yet reachable). Valid for 60 days.';
+$string['license_trial_local']       = 'Trial token issued by the licence service.';
+$string['license_local_note']        = 'Licence status could not be verified recently.';
 
 // Upload endpoints.
 $string['error_no_video'] = 'No video file received';
@@ -189,12 +199,15 @@ $string['report_link_label'] = 'Proctoring Report';
 $string['settings_detection'] = 'AI Detection';
 $string['settings_ai_confidence_threshold'] = 'Object detection confidence threshold';
 $string['settings_ai_confidence_threshold_desc'] = 'Minimum confidence score (0.0–1.0) for the AI to count a detected object. Lower values detect more objects but increase false positives. Default: 0.35.';
+$string['settings_ai_confidence_threshold_default'] = '0.35';
 $string['settings_ai_min_detections'] = 'Minimum detections before flagging';
 $string['settings_ai_min_detections_desc'] = 'How many times an object must appear (each interval is ~1.5 s) before it is marked suspicious. Higher values reduce false positives. Default: 3.';
 $string['settings_ai_flagged_objects'] = 'Flagged object types';
 $string['settings_ai_flagged_objects_desc'] = 'One object class per line. Objects in this list trigger a suspicious scan flag when detected above the minimum threshold. Default classes: cell phone, book, tablet, remote, extra_person, laptop.';
+$string['settings_ai_flagged_objects_default'] = "cell phone\nbook\ntablet\nremote\nextra_person\nlaptop";
 $string['settings_faceturn_sensitivity'] = 'Face-turn sensitivity';
 $string['settings_faceturn_sensitivity_desc'] = 'Nose-to-eye ratio threshold for detecting a deliberate look-away (0.0–1.0). Lower values are more sensitive. Default: 0.30 (~17° head turn).';
+$string['settings_faceturn_sensitivity_default'] = '0.30';
 
 // Risk scoring settings.
 $string['settings_risk'] = 'Risk Scoring';
@@ -223,6 +236,9 @@ $string['privacy:metadata:quizaccess_tagproctoring_scan:selfie_filename'] = 'The
 $string['privacy:metadata:quizaccess_tagproctoring_scan:idphoto_filename'] = 'The filename of the student ID photo.';
 $string['privacy:metadata:quizaccess_tagproctoring_scan:scan_objects'] = 'JSON list of objects detected in the room scan by the AI.';
 $string['privacy:metadata:quizaccess_tagproctoring_scan:scan_suspicious'] = 'Whether the AI flagged this scan as suspicious.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:needs_rescan'] = 'Whether a teacher has requested a new room scan for the student.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:face_match_verified'] = 'Whether the selfie and ID photo comparison matched, failed, or could not be checked.';
+$string['privacy:metadata:quizaccess_tagproctoring_scan:face_match_distance'] = 'The calculated face-match distance between the selfie and ID photo.';
 
 $string['privacy:metadata:quizaccess_tagproctoring_screenshots'] = 'Stores periodic webcam screenshots captured during a quiz attempt.';
 $string['privacy:metadata:quizaccess_tagproctoring_screenshots:userid'] = 'The ID of the student the screenshot belongs to.';
@@ -230,6 +246,7 @@ $string['privacy:metadata:quizaccess_tagproctoring_screenshots:quizid'] = 'The q
 $string['privacy:metadata:quizaccess_tagproctoring_screenshots:attemptid'] = 'The quiz attempt this screenshot belongs to.';
 $string['privacy:metadata:quizaccess_tagproctoring_screenshots:timecreated'] = 'The time the screenshot was captured.';
 $string['privacy:metadata:quizaccess_tagproctoring_screenshots:filename'] = 'The filename of the screenshot image.';
+$string['privacy:metadata:quizaccess_tagproctoring_screenshots:source'] = 'The source or trigger for the screenshot, such as webcam, screen, tab switch, or window blur.';
 
 $string['privacy:metadata:quizaccess_tagproctoring_events'] = 'Stores suspicious behavioural events (tab switches, copy/paste, DevTools, etc.) logged during a quiz attempt.';
 $string['privacy:metadata:quizaccess_tagproctoring_events:userid'] = 'The ID of the student who triggered the event.';
@@ -239,6 +256,63 @@ $string['privacy:metadata:quizaccess_tagproctoring_events:timecreated'] = 'The t
 $string['privacy:metadata:quizaccess_tagproctoring_events:eventtype'] = 'The type of suspicious event detected.';
 $string['privacy:metadata:quizaccess_tagproctoring_events:detail'] = 'Additional detail about the event.';
 
+$string['privacy:metadata:quizaccess_tagproctoring_overrides'] = 'Stores teacher review decisions and manual valid overrides for proctored quiz attempts.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:attemptid'] = 'The quiz attempt this review decision belongs to.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:valid_override'] = 'Whether the attempt was manually marked as valid.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:overriddenby'] = 'The ID of the user who manually marked the attempt as valid.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:timecreated'] = 'The time the manual override record was created.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:reviewed'] = 'Whether the proctoring attempt has been marked as reviewed.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:reviewedby'] = 'The ID of the user who marked the proctoring attempt as reviewed.';
+$string['privacy:metadata:quizaccess_tagproctoring_overrides:timereviewed'] = 'The time the proctoring attempt was marked as reviewed.';
+
 $string['privacy:path:scans'] = 'Room Scans';
 $string['privacy:path:screenshots'] = 'Screenshots';
 $string['privacy:path:events'] = 'Event Log';
+
+// Email alert settings.
+$string['settings_emailalerts'] = 'Email teachers after flagged attempts';
+$string['settings_emailalerts_desc'] = 'After a student submits the quiz, send one summary email when the attempt contains proctoring flags.';
+$string['settings_emailrecipients'] = 'Alert recipient email addresses';
+$string['settings_emailrecipients_desc'] = 'Enter the email addresses that should receive TAG Proctoring summaries after flagged quiz attempts. Separate multiple addresses with commas or new lines. Leave empty to send to quiz teachers who can view the proctoring report.';
+
+// High-risk email content.
+$string['email_highrisk_subject'] = 'Proctoring Alert: High Risk — {$a->student} — {$a->quiz}';
+$string['email_highrisk_body'] = 'A student has completed a proctored quiz attempt with a HIGH RISK score.
+
+Student:       {$a->student}
+Quiz:          {$a->quiz}
+Attempt:       #{$a->attempt}
+Risk score:    {$a->score}
+
+View the full proctoring report:
+{$a->reporturl}
+
+This is an automated message from TAG Proctoring.';
+$string['email_attempt_subject'] = 'TAG Proctoring Summary: {$a->risk} — {$a->student} — {$a->quiz}';
+$string['email_attempt_body'] = 'A student has submitted a proctored quiz attempt with recorded proctoring flags.
+
+Student:       {$a->student}
+Quiz:          {$a->quiz}
+Attempt:       #{$a->attempt}
+Risk level:    {$a->risk}
+Risk score:    {$a->score}
+Screenshots:   {$a->screenshots}
+
+Recorded flags:
+{$a->events}
+
+View the full proctoring report:
+{$a->reporturl}
+
+This email is sent after the quiz attempt is submitted. TAG Proctoring does not send live teacher alerts during the exam.';
+$string['email_no_events'] = 'No behavioural events recorded. The attempt was flagged by scan or identity checks.';
+$string['email_recipient_lastname'] = 'Alerts';
+
+// Mark as reviewed.
+$string['report_mark_reviewed'] = 'Mark as Reviewed';
+$string['report_reviewed'] = 'Reviewed';
+$string['report_unmark_reviewed'] = 'Reviewed (click to unmark)';
+
+// Grant rescan.
+$string['report_grant_rescan'] = 'Grant Rescan';
+$string['report_rescan_pending'] = 'Rescan Pending (cancel)';

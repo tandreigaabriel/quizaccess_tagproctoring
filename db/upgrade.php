@@ -98,5 +98,75 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         upgrade_plugin_savepoint(true, 2026041400, 'quizaccess', 'tagproctoring');
     }
 
+    // 2026070502 - Add rescanperattempt to per-quiz settings table.
+    if ($oldversion < 2026070502) {
+        $table = new xmldb_table('quizaccess_tagproctoring_settings');
+
+        $field = new xmldb_field(
+            'rescanperattempt', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 0, 'durationsec'
+        );
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070502, 'quizaccess', 'tagproctoring');
+    }
+
+    // 2026070501 - Add reviewed fields to overrides table; add needs_rescan to scan table.
+    if ($oldversion < 2026070501) {
+        $ovtable = new xmldb_table('quizaccess_tagproctoring_overrides');
+
+        $f1 = new xmldb_field('reviewed', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 0, 'timecreated');
+        if (!$dbman->field_exists($ovtable, $f1)) {
+            $dbman->add_field($ovtable, $f1);
+        }
+
+        $f2 = new xmldb_field('reviewedby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'reviewed');
+        if (!$dbman->field_exists($ovtable, $f2)) {
+            $dbman->add_field($ovtable, $f2);
+        }
+
+        $f3 = new xmldb_field('timereviewed', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'reviewedby');
+        if (!$dbman->field_exists($ovtable, $f3)) {
+            $dbman->add_field($ovtable, $f3);
+        }
+
+        $scantable = new xmldb_table('quizaccess_tagproctoring_scan');
+
+        $f4 = new xmldb_field('needs_rescan', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 0, 'scan_suspicious');
+        if (!$dbman->field_exists($scantable, $f4)) {
+            $dbman->add_field($scantable, $f4);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070501, 'quizaccess', 'tagproctoring');
+    }
+
+    // 2026070505 - Add performance indexes for large concurrent exams.
+    if ($oldversion < 2026070505) {
+        $scantable = new xmldb_table('quizaccess_tagproctoring_scan');
+        $scanattempt = new xmldb_index('attemptid', XMLDB_INDEX_NOTUNIQUE, ['attemptid']);
+        if (!$dbman->index_exists($scantable, $scanattempt)) {
+            $dbman->add_index($scantable, $scanattempt);
+        }
+
+        $screenshotstable = new xmldb_table('quizaccess_tagproctoring_screenshots');
+        $screenshotsattempt = new xmldb_index('attemptid', XMLDB_INDEX_NOTUNIQUE, ['attemptid']);
+        if (!$dbman->index_exists($screenshotstable, $screenshotsattempt)) {
+            $dbman->add_index($screenshotstable, $screenshotsattempt);
+        }
+
+        $eventstable = new xmldb_table('quizaccess_tagproctoring_events');
+        $eventattempttime = new xmldb_index(
+            'attemptid_event_time',
+            XMLDB_INDEX_NOTUNIQUE,
+            ['attemptid', 'eventtype', 'timecreated']
+        );
+        if (!$dbman->index_exists($eventstable, $eventattempttime)) {
+            $dbman->add_index($eventstable, $eventattempttime);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070505, 'quizaccess', 'tagproctoring');
+    }
+
     return true;
 }
