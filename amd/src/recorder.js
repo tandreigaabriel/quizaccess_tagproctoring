@@ -386,57 +386,47 @@ define("quizaccess_tagproctoring/recorder", [], function() {
     // ── Step 0 — Rules ──────────────────────────────────────────────────────
 
     /**
-     * Initialise the rules-agreement step.
+     * Initialise the rules step as a slide-by-slide walkthrough.
+     * Each slide shows one rule; the student presses Next to advance.
+     * On the final (consent) slide the button becomes "I Agree & Continue".
      */
     function initRules() {
-        var checkbox   = el('tagwiz-rules-agree');
-        var nextBtn    = el('tagwiz-rules-next');
-        var scrollBox  = el('tagwiz-rules-scroll');
-        var scrollHint = el('tagwiz-rules-scroll-hint');
-        var confirmed  = el('tagwiz-rules-confirmed');
-        if (!checkbox || !nextBtn) {
+        var nextBtn = el('tagwiz-rules-next');
+        var slides  = document.querySelectorAll('#tagwiz-rule-slides .tagwiz-rule-slide');
+        var counter = el('tagwiz-rule-counter');
+        var fill    = el('tagwiz-rule-progress-fill');
+        if (!nextBtn || !slides.length) {
             return;
         }
+        var total   = slides.length;
+        var current = 0;
 
-        /**
-         * Unlock the agreement checkbox once the student has scrolled to the bottom.
-         */
-        function enableCheckbox() {
-            checkbox.disabled = false;
-            if (scrollHint) {
-                scrollHint.style.display = 'none';
+        function updateSlide() {
+            for (var i = 0; i < slides.length; i++) {
+                slides[i].style.display = (i === current) ? 'flex' : 'none';
             }
+            if (counter) {
+                counter.textContent = (current + 1) + ' of ' + total;
+            }
+            if (fill) {
+                fill.style.width = Math.round((current + 1) / total * 100) + '%';
+            }
+            nextBtn.textContent = (current === total - 1) ? 'I Agree & Continue →' : 'Next →';
         }
 
-        if (scrollBox) {
-            // If the content already fits (no overflow), enable immediately.
-            if (scrollBox.scrollHeight <= scrollBox.clientHeight + 5) {
-                enableCheckbox();
-            } else {
-                scrollBox.addEventListener('scroll', function() {
-                    if (scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 5) {
-                        enableCheckbox();
-                    }
-                });
-            }
-        } else {
-            enableCheckbox();
-        }
-
-        checkbox.addEventListener('change', function() {
-            nextBtn.disabled = !checkbox.checked;
-            if (confirmed) {
-                confirmed.style.display = checkbox.checked ? 'block' : 'none';
-            }
-        });
+        updateSlide();
 
         nextBtn.addEventListener('click', function() {
-            if (!checkbox.checked) {
+            if (current < total - 1) {
+                current++;
+                updateSlide();
                 return;
             }
+            var fsEl  = document.documentElement;
+            var fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen;
+            if (fsReq) { fsReq.call(fsEl).catch(function() {}); }
             markDone(0);
             if (cfg && cfg.enableRoomScan === 0) {
-                // Room scan disabled by admin — skip step 1.
                 markDone(1);
                 showStep(2);
                 initSelfie();

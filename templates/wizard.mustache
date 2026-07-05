@@ -79,64 +79,96 @@
     </div>
   </div>
 
-  <div id="tagwiz-step-0" class="tagwiz-card tagwiz-card--intro">
+  <div id="tagwiz-step-0" class="tagwiz-card">
     <div class="tagwiz-card-header">
       <div class="tagwiz-badge tagwiz-badge--rules">01</div>
       <div>
-        <h4 class="tagwiz-title">Rules and Privacy</h4>
-        <p class="tagwiz-subtitle">Read to the bottom, then confirm you understand the monitored exam rules.</p>
+        <h4 class="tagwiz-title">Exam Rules &amp; Consent</h4>
+        <p class="tagwiz-subtitle">Read each rule and press Next to continue.</p>
       </div>
     </div>
     <div class="tagwiz-card-body">
-      <div class="tagwiz-rules-box" id="tagwiz-rules-scroll">
-        <div class="tagwiz-privacy-panel">
-          <h5>Privacy commitment</h5>
-          <ul>
-            <li>Minimizing what is collected</li>
-            <li>Keeping only what is required</li>
-            <li>Sharing only with authorized reviewers</li>
-            <li>Deleting evidence according to retention settings</li>
-          </ul>
+
+      <div id="tagwiz-rule-slides">
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-0">
+          <div class="tagwiz-rule-slide-label">Secure Exam</div>
+          <h3 class="tagwiz-rule-slide-heading">This exam is monitored.</h3>
+          <p class="tagwiz-rule-slide-sub">Your webcam, screen activity, and environment will be recorded and may be reviewed by your invigilator for integrity purposes.</p>
         </div>
 
-        <p class="tagwiz-rules-intro">
-          Your setup checks, screen-share evidence, and selected activity events may be reviewed by your invigilator.
-        </p>
-
-        <div class="tagwiz-rule-groups" aria-label="Proctoring rules">
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">CAM</span><span>Keep your face visible to the webcam and do not leave camera view.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">MSG</span><span>Do not use messaging apps such as Zoom, Slack, Discord, Teams, or chat tools.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">MIC</span><span>Do not talk to another person or receive help during the exam.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">ONE</span><span>You must be alone. No other people may be present in the room.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">AI</span><span>Do not use active AI tools, remote access tools, or automation software.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">DEV</span><span>No phones, tablets, smart devices, headphones, books, notes, or external materials.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">SCAN</span><span>You must complete a room and desk scan before starting.</span></div>
-          <div class="tagwiz-rule-row"><span class="tagwiz-rule-icon">SCR</span><span>Use only one monitor, stay in fullscreen, and do not stop sharing your screen.</span></div>
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-1" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 1 &mdash; Webcam</div>
+          <h3 class="tagwiz-rule-slide-heading">Keep your face visible to the webcam at all times.</h3>
+          <p class="tagwiz-rule-slide-sub">Do not leave camera view, cover your face, or obstruct the lens during the exam.</p>
         </div>
 
-        <div class="tagwiz-rules-warning">
-          <strong>Important:</strong> Leaving the exam view, stopping screen share, using extra displays, or showing prohibited items may mark the attempt for review.
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-2" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 2 &mdash; Alone</div>
+          <h3 class="tagwiz-rule-slide-heading">You must be alone. No other people may be present in the room.</h3>
+          <p class="tagwiz-rule-slide-sub">Family members, colleagues, or anyone else must leave the room before and during the exam.</p>
         </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-3" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 3 &mdash; Messaging</div>
+          <h3 class="tagwiz-rule-slide-heading">Do not use messaging apps during the exam.</h3>
+          <p class="tagwiz-rule-slide-sub">Zoom, Slack, Discord, Teams, chat tools, or any communication software is strictly prohibited.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-4" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 4 &mdash; No Help</div>
+          <h3 class="tagwiz-rule-slide-heading">Do not talk to another person or receive any help.</h3>
+          <p class="tagwiz-rule-slide-sub">You must complete the exam entirely on your own without speaking to or receiving assistance from anyone.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-5" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 5 &mdash; AI &amp; Tools</div>
+          <h3 class="tagwiz-rule-slide-heading">Do not use AI tools, remote access, or automation software.</h3>
+          <p class="tagwiz-rule-slide-sub">ChatGPT, Copilot, remote desktop software, or any tool that could assist with answers is not permitted.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-6" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 6 &mdash; Devices</div>
+          <h3 class="tagwiz-rule-slide-heading">No phones, tablets, headphones, books, notes, or external materials.</h3>
+          <p class="tagwiz-rule-slide-sub">All unauthorised devices and materials must be removed from your desk and workspace before starting.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-7" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 7 &mdash; Room Scan</div>
+          <h3 class="tagwiz-rule-slide-heading">You must complete a room and desk scan before starting.</h3>
+          <p class="tagwiz-rule-slide-sub">Pan your webcam around the entire room to show your environment is free of prohibited items.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide" id="tagwiz-rule-slide-8" style="display:none">
+          <div class="tagwiz-rule-slide-label">Rule 8 &mdash; Screen</div>
+          <h3 class="tagwiz-rule-slide-heading">Use one monitor, stay in fullscreen, and keep screen sharing active.</h3>
+          <p class="tagwiz-rule-slide-sub">Disconnecting your screen share, exiting fullscreen, or using an extra display will be recorded as a violation.</p>
+        </div>
+
+        <div class="tagwiz-rule-slide tagwiz-rule-slide--consent" id="tagwiz-rule-slide-9" style="display:none">
+          <div class="tagwiz-rule-slide-label">Confirmation</div>
+          <h3 class="tagwiz-rule-slide-heading">I have read and understood all exam rules.</h3>
+          <p class="tagwiz-rule-slide-sub">By clicking <em>I Agree &amp; Continue</em> you confirm you accept these conditions and are ready to begin your secure exam check-in.</p>
+          <div class="tagwiz-rule-consent-warn">
+            Violations will be flagged and reviewed. Repeated violations may result in your exam being disqualified.
+          </div>
+        </div>
+
       </div>
-      <div class="tagwiz-scroll-hint" id="tagwiz-rules-scroll-hint">Scroll to the end of the rules to continue</div>
 
-      <div class="tagwiz-agree-row">
-        <label class="tagwiz-agree-label">
-          <span class="tagwiz-agree-checkbox-wrap">
-            <input type="checkbox" id="tagwiz-rules-agree" disabled>
-          </span>
-          I have read, understood, and agree to the proctoring rules above.
-        </label>
-      </div>
-      <div class="tagwiz-rules-confirmed" id="tagwiz-rules-confirmed" style="display:none">
-        Rules accepted
+      <div class="tagwiz-rule-nav">
+        <span class="tagwiz-rule-counter" id="tagwiz-rule-counter">1 of 10</span>
+        <div class="tagwiz-rule-progress-bar">
+          <div class="tagwiz-rule-progress-fill" id="tagwiz-rule-progress-fill" style="width:10%"></div>
+        </div>
       </div>
 
       <div class="tagwiz-actions">
-        <button type="button" class="tagwiz-btn tagwiz-btn--primary tagwiz-btn--round" id="tagwiz-rules-next" disabled aria-label="Continue">
-          <span aria-hidden="true">&rsaquo;</span>
+        <button type="button" class="tagwiz-btn tagwiz-btn--primary" id="tagwiz-rules-next">
+          Next &rarr;
         </button>
       </div>
+
     </div>
   </div>
 
