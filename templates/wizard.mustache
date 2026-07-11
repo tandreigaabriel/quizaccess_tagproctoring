@@ -22,6 +22,10 @@
     @template quizaccess_tagproctoring/wizard
 
     Pre-exam proctoring wizard: rules, room scan, selfie, ID photo, screen share.
+    All content is static HTML; interactive state is managed entirely by JavaScript.
+
+    Example context (json):
+    {}
 
     @package    quizaccess_tagproctoring
     @copyright  2026 Andrei Toma <https://www.tandreig.com>
@@ -246,7 +250,7 @@
             <div id="tagwiz-selfie-countdown" class="tagwiz-selfie-countdown" style="display:none">3</div>
           </div>
           <div id="tagwiz-selfie-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
-            <img id="tagwiz-selfie-preview" class="tagwiz-preview-img" src="" alt="Selfie preview">
+            <img id="tagwiz-selfie-preview" class="tagwiz-preview-img" alt="Selfie preview">
             <div class="tagwiz-preview-badge">Captured</div>
           </div>
           <p id="tagwiz-selfie-status" class="tagwiz-status-msg"></p>
@@ -295,7 +299,7 @@
             </div>
           </div>
           <div id="tagwiz-id-preview-wrap" style="display:none" class="tagwiz-preview-wrap">
-            <img id="tagwiz-id-preview" class="tagwiz-preview-img" src="" alt="ID photo preview">
+            <img id="tagwiz-id-preview" class="tagwiz-preview-img" alt="ID photo preview">
             <div class="tagwiz-preview-badge">Captured</div>
           </div>
           <p id="tagwiz-id-status" class="tagwiz-status-msg"></p>
