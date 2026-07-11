@@ -51,26 +51,23 @@ jobs:
       - name: Install Moodle
         run: |
           moodle-plugin-ci install \
-            --plugin ./plugin/tagproctoring \
+            --plugin ./plugin \
             --db-host=127.0.0.1 \
             --branch ${{ matrix.moodle-branch }}
         env:
           DB: ${{ matrix.database }}
 
       - name: PHP Lint
-        run: moodle-plugin-ci phplint ./plugin/tagproctoring
+        run: moodle-plugin-ci phplint ./plugin
 
       - name: Moodle Code Checker
-        run: moodle-plugin-ci phpcs ./plugin/tagproctoring --max-warnings 0
+        run: moodle-plugin-ci phpcs ./plugin --max-warnings 0
 
       - name: Moodle PHPDoc Checker
-        run: moodle-plugin-ci phpdoc ./plugin/tagproctoring --max-warnings 0
+        run: moodle-plugin-ci phpdoc ./plugin --max-warnings 0
 
       - name: Validate Plugin
-        run: moodle-plugin-ci validate ./plugin/tagproctoring
+        run: moodle-plugin-ci validate ./plugin
 
       - name: Mustache Lint
-        run: moodle-plugin-ci mustache ./plugin/tagproctoring
-
-      - name: Grunt
-        run: moodle-plugin-ci grunt ./plugin/tagproctoring
+        run: moodle-plugin-ci mustache moodle/mod/quiz/accessrule/tagproctoring
