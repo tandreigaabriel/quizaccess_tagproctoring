@@ -135,10 +135,14 @@ $string['task_cleanup_files'] = 'TAG Proctoring: delete expired scan videos and 
 $string['task_renew_license'] = 'TAG Proctoring: weekly license token renewal';
 
 // License settings.
-$string['settings_license'] = 'TAG Proctoring License';
-$string['settings_license_desc'] = 'Enter the licence key delivered for this site, including keys issued after a Moodle Marketplace purchase. Activation verifies the key against the TAG Proctoring licence service.';
-$string['settings_license_key'] = 'License key';
-$string['settings_license_key_desc'] = 'Paste your license key here and save. Activation is automatic.';
+$string['license_notice'] = 'A licence key is required to activate TAG Proctoring. Request your licence key at tandreig.com — it will be issued and emailed to you automatically.';
+$string['license_request_link'] = 'Request a licence key';
+$string['license_terms_link'] = 'Terms and Conditions';
+$string['license_privacy_link'] = 'Privacy Policy';
+$string['settings_license'] = 'TAG Proctoring Licence';
+$string['settings_license_desc'] = 'Enter the licence key issued for this site. The key is validated by the TAG Proctoring licence service and bound to your site\'s domain.';
+$string['settings_license_key'] = 'Licence key';
+$string['settings_license_key_desc'] = 'Paste your licence key here and save. Activation is automatic.';
 
 // License status badges.
 $string['license_status_valid']      = 'License Active';
@@ -152,13 +156,12 @@ $string['license_expires'] = 'Expires';
 $string['license_domain']  = 'Domain';
 
 // License activation messages.
-$string['license_activated']         = 'License activated successfully.';
-$string['license_invalid_key']       = 'Invalid or revoked license key. Please check your key and try again.';
+$string['license_activated']          = 'License activated successfully.';
+$string['license_invalid_key']        = 'Invalid or revoked license key. Please check your key and try again.';
 $string['license_server_unreachable'] = 'License server unreachable. Please try again later.';
-$string['license_trial_local']       = 'Trial token issued by the licence service.';
-$string['license_local_note']        = 'Licence status could not be verified recently.';
 
 // Upload endpoints.
+$string['error_general'] = 'An error occurred. Please try again.';
 $string['error_no_video'] = 'No video file received';
 $string['error_no_selfie'] = 'No selfie file received';
 $string['error_no_screenshot'] = 'No screenshot received';

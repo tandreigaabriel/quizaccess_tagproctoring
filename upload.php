@@ -19,14 +19,11 @@
  *
  * @package    quizaccess_tagproctoring
  * @copyright  2026 Andrei Toma <https://www.tandreig.com>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/course/lib.php');
-
-// Moodle requires this even if config.php is included.
-defined('MOODLE_INTERNAL') || die();
 
 // Prevent output corruption.
 ob_start();
@@ -170,7 +167,7 @@ try {
 
     echo json_encode([
         'status' => 'error',
-        'message' => $e->getMessage(),
+        'message' => get_string('error_general', 'quizaccess_tagproctoring'),
     ]);
 }
 exit;

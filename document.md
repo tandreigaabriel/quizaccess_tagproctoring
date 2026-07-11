@@ -62,6 +62,5 @@
 
 ## Notes
 
-- The `img/` folder contains reference screenshots from another proctoring plugin.
 - Those images are not used by this plugin and were not copied into the UI.
 - Moodle caches may need to be purged after deployment so updated templates, CSS, and AMD JavaScript are loaded.

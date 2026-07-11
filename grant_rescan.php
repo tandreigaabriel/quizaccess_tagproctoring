@@ -63,6 +63,6 @@ try {
 } catch (Throwable $e) {
     ob_end_clean();
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => get_string('error_general', 'quizaccess_tagproctoring')]);
 }
 exit;

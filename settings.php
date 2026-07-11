@@ -84,9 +84,6 @@ class admin_setting_tagproctoring_licensekey extends admin_setting_configtext {
             if (!empty($info->domain)) {
                 $detail .= ' &nbsp;<strong>' . get_string('license_domain', 'quizaccess_tagproctoring') . ':</strong> ' . htmlspecialchars($info->domain);
             }
-            if (!empty($info->local)) {
-                $detail .= ' &nbsp;<span class="text-muted small">' . get_string('license_local_note', 'quizaccess_tagproctoring') . '</span>';
-            }
         }
 
         return $html . '<div class="mt-2 mb-1">' . $badge . $detail . '</div>';
@@ -103,6 +100,22 @@ if ($ADMIN->fulltree) {
         'quizaccess_tagproctoring/license_heading',
         get_string('settings_license', 'quizaccess_tagproctoring'),
         get_string('settings_license_desc', 'quizaccess_tagproctoring')
+    ));
+
+    $licencenotice = '<div class="alert alert-info" role="alert">'
+        . get_string('license_notice', 'quizaccess_tagproctoring') . '<br><br>'
+        . '<a href="https://tandreig.com/request-key?plugin=tagproctoring" target="_blank" rel="noopener">'
+        . get_string('license_request_link', 'quizaccess_tagproctoring') . '</a>'
+        . '&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="https://tandreig.com/terms-and-conditions" target="_blank" rel="noopener">'
+        . get_string('license_terms_link', 'quizaccess_tagproctoring') . '</a>'
+        . '&nbsp;&nbsp;&bull;&nbsp;&nbsp;<a href="https://tandreig.com/privacy-policy" target="_blank" rel="noopener">'
+        . get_string('license_privacy_link', 'quizaccess_tagproctoring') . '</a>'
+        . '</div>';
+
+    $settings->add(new admin_setting_heading(
+        'quizaccess_tagproctoring/license_notice',
+        '',
+        $licencenotice
     ));
 
     $settings->add(new admin_setting_tagproctoring_licensekey(
