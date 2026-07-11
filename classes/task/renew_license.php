@@ -24,8 +24,6 @@
 
 namespace quizaccess_tagproctoring\task;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Renews the TAG Proctoring license token against the remote API.
  *
@@ -33,7 +31,6 @@ defined('MOODLE_INTERNAL') || die();
  * remaining, so the API is only contacted when renewal is actually needed.
  */
 class renew_license extends \core\task\scheduled_task {
-
     /**
      * Return the task display name.
      *

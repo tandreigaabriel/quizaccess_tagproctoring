@@ -106,7 +106,7 @@ foreach ($events as $e) {
         trim($a->firstname . ' ' . $a->lastname),
         $a->email,
         $a->attempt,
-        $a->timestart  ? date('Y-m-d H:i:s', $a->timestart)  : '',
+        $a->timestart ? date('Y-m-d H:i:s', $a->timestart) : '',
         $a->timefinish ? date('Y-m-d H:i:s', $a->timefinish) : '',
         date('Y-m-d H:i:s', $e->timecreated),
         $e->eventtype,

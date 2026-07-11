@@ -27,21 +27,16 @@
 
 namespace quizaccess_tagproctoring\external;
 
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->libdir . '/externallib.php');
-
-use external_api;
-use external_function_parameters;
-use external_single_structure;
-use external_value;
+use core_external\external_api;
+use core_external\external_function_parameters;
+use core_external\external_single_structure;
+use core_external\external_value;
 use context_module;
 
 /**
  * Resets the quiz attempt start time to now so the student's timer is not eaten by the wizard.
  */
 class reset_timer extends external_api {
-
     /**
      * Describe the parameters accepted by reset_timer.
      *
@@ -115,7 +110,7 @@ class reset_timer extends external_api {
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
             'status'        => new external_value(PARAM_TEXT, 'ok'),
-            'added_seconds' => new external_value(PARAM_INT,  'Seconds added back to the quiz timer'),
+            'added_seconds' => new external_value(PARAM_INT, 'Seconds added back to the quiz timer'),
         ]);
     }
 }

@@ -34,14 +34,12 @@ namespace quizaccess_tagproctoring\task;
  */
 class cleanup_files extends \core\task\scheduled_task
 {
-
     /**
      * Return the task name.
      *
      * @return string
      */
-    public function get_name(): string
-    {
+    public function get_name(): string {
         return get_string('task_cleanup_files', 'quizaccess_tagproctoring');
     }
 
@@ -50,8 +48,7 @@ class cleanup_files extends \core\task\scheduled_task
      *
      * @return void
      */
-    public function execute(): void
-    {
+    public function execute(): void {
         global $DB;
 
         $retentiondays = (int) get_config('quizaccess_tagproctoring', 'retentiondays');
@@ -126,7 +123,7 @@ class cleanup_files extends \core\task\scheduled_task
         );
 
         if ($oldattemptids) {
-            list($insql, $inparams) = $DB->get_in_or_equal($oldattemptids);
+            [$insql, $inparams] = $DB->get_in_or_equal($oldattemptids);
 
             $evcount = $DB->count_records_select(
                 'quizaccess_tagproctoring_events',

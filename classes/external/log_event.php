@@ -24,21 +24,16 @@
 
 namespace quizaccess_tagproctoring\external;
 
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->libdir . '/externallib.php');
-
-use external_api;
-use external_function_parameters;
-use external_single_structure;
-use external_value;
+use core_external\external_api;
+use core_external\external_function_parameters;
+use core_external\external_single_structure;
+use core_external\external_value;
 use context_module;
 
 /**
  * External function class for logging proctoring events.
  */
 class log_event extends external_api {
-
     /**
      * Describe the parameters accepted by log_event.
      *
@@ -46,10 +41,10 @@ class log_event extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'cmid'      => new external_value(PARAM_INT,          'Course-module ID'),
-            'attemptid' => new external_value(PARAM_INT,          'Quiz attempt ID'),
-            'eventtype' => new external_value(PARAM_ALPHANUMEXT,  'Event type identifier'),
-            'detail'    => new external_value(PARAM_TEXT,         'Optional detail string', VALUE_DEFAULT, ''),
+            'cmid'      => new external_value(PARAM_INT, 'Course-module ID'),
+            'attemptid' => new external_value(PARAM_INT, 'Quiz attempt ID'),
+            'eventtype' => new external_value(PARAM_ALPHANUMEXT, 'Event type identifier'),
+            'detail'    => new external_value(PARAM_TEXT, 'Optional detail string', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -92,10 +87,12 @@ class log_event extends external_api {
 
         // Deduplicate: only log one screenshare event per attempt.
         if ($eventtype === 'screenshare') {
-            if ($DB->record_exists('quizaccess_tagproctoring_events', [
+            if (
+                $DB->record_exists('quizaccess_tagproctoring_events', [
                 'attemptid' => $attemptid,
                 'eventtype' => 'screenshare',
-            ])) {
+                ])
+            ) {
                 return ['status' => 'ok'];
             }
         }

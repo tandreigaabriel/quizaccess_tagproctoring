@@ -28,8 +28,7 @@
  * @param int $oldversion The current plugin version.
  * @return bool
  */
-function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
-{
+function xmldb_quizaccess_tagproctoring_upgrade($oldversion) {
     global $DB;
 
     $dbman = $DB->get_manager();
@@ -44,14 +43,28 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         $table = new xmldb_table('quizaccess_tagproctoring_scan');
 
         $field1 = new xmldb_field(
-            'face_match_verified', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'scan_suspicious'
+            'face_match_verified',
+            XMLDB_TYPE_INTEGER,
+            '2',
+            null,
+            null,
+            null,
+            null,
+            'scan_suspicious'
         );
         if (!$dbman->field_exists($table, $field1)) {
             $dbman->add_field($table, $field1);
         }
 
         $field2 = new xmldb_field(
-            'face_match_distance', XMLDB_TYPE_NUMBER, '5', null, null, null, null, 'face_match_verified'
+            'face_match_distance',
+            XMLDB_TYPE_NUMBER,
+            '5',
+            null,
+            null,
+            null,
+            null,
+            'face_match_verified'
         );
         $field2->setDecimals(3);
         if (!$dbman->field_exists($table, $field2)) {
@@ -66,7 +79,14 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         $table = new xmldb_table('quizaccess_tagproctoring_screenshots');
 
         $field = new xmldb_field(
-            'source', XMLDB_TYPE_CHAR, '20', null, false, null, null, 'filename'
+            'source',
+            XMLDB_TYPE_CHAR,
+            '20',
+            null,
+            false,
+            null,
+            null,
+            'filename'
         );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
@@ -89,7 +109,14 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         $table = new xmldb_table('quizaccess_tagproctoring_settings');
 
         $field = new xmldb_field(
-            'enableroomscan', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 1, 'enabled'
+            'enableroomscan',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            1,
+            'enabled'
         );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
@@ -103,7 +130,14 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion)
         $table = new xmldb_table('quizaccess_tagproctoring_settings');
 
         $field = new xmldb_field(
-            'rescanperattempt', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, 0, 'durationsec'
+            'rescanperattempt',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            0,
+            'durationsec'
         );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);

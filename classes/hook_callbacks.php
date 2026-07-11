@@ -30,7 +30,6 @@ use core\hook\output\before_footer_html_generation;
  * Hook callback class.
  */
 class hook_callbacks {
-
     /**
      * Inject proctoring status column into quiz overview report.
      *

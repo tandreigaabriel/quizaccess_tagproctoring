@@ -94,7 +94,11 @@ if (!data_submitted()) {
         ['type' => 'submit', 'class' => 'btn btn-danger me-2']
     );
 
-    $form .= html_writer::link($reporturl, get_string('deletescan_cancel', 'quizaccess_tagproctoring'), ['class' => 'btn btn-secondary']);
+    $form .= html_writer::link(
+        $reporturl,
+        get_string('deletescan_cancel', 'quizaccess_tagproctoring'),
+        ['class' => 'btn btn-secondary']
+    );
 
     $form .= html_writer::end_tag('form');
 

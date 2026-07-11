@@ -24,8 +24,6 @@
 
 namespace quizaccess_tagproctoring;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * License check, activation and renewal.
  *
@@ -44,7 +42,6 @@ defined('MOODLE_INTERNAL') || die();
  *   define('QUIZACCESS_TAGPROCTORING_LICENSE_DEV', true);
  */
 class license {
-
     /** Remote activation endpoint — point this at your license server when live. */
     const ACTIVATION_ENDPOINT = 'https://www.tandreig.com/api/license/activate';
 

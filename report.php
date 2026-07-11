@@ -82,7 +82,11 @@ echo $OUTPUT->header();
 
 if (!$attempts) {
     echo html_writer::div(
-        html_writer::tag('p', get_string('report_no_attempts', 'quizaccess_tagproctoring'), ['class' => 'text-muted text-center mt-5']),
+        html_writer::tag(
+            'p',
+            get_string('report_no_attempts', 'quizaccess_tagproctoring'),
+            ['class' => 'text-muted text-center mt-5']
+        ),
         'container-fluid'
     );
     echo $OUTPUT->footer();
@@ -153,7 +157,13 @@ $reportsesskey = sesskey();
 $riskmap = ['high' => 'invalid', 'medium' => 'review', 'low' => 'valid'];
 
 /**
- * Generate pluginfile URL.
+ * Build a pluginfile URL for a proctoring file area.
+ *
+ * @param context $ctx      Module context.
+ * @param string  $area     File area (roomscan, selfie, idphoto, screenshots).
+ * @param int     $itemid   User ID used as the pluginfile item ID.
+ * @param string  $filename File name within the area.
+ * @return string Absolute URL string, or empty string when filename is empty.
  */
 function quizaccess_tagproctoring_pluginfile_url(context $ctx, string $area, int $itemid, string $filename): string {
     if (!$filename) {
@@ -219,9 +229,24 @@ foreach ($attempts as $attempt) {
 
     if ($scan) {
         $scanjs = [
-        'video_url'           => quizaccess_tagproctoring_pluginfile_url($context, 'roomscan', $scan->userid, $scan->filename ?? ''),
-        'selfie_url'          => quizaccess_tagproctoring_pluginfile_url($context, 'selfie', $scan->userid, $scan->selfie_filename ?? ''),
-        'idphoto_url'         => quizaccess_tagproctoring_pluginfile_url($context, 'idphoto', $scan->userid, $scan->idphoto_filename ?? ''),
+        'video_url'   => quizaccess_tagproctoring_pluginfile_url(
+            $context,
+            'roomscan',
+            $scan->userid,
+            $scan->filename ?? ''
+        ),
+        'selfie_url'  => quizaccess_tagproctoring_pluginfile_url(
+            $context,
+            'selfie',
+            $scan->userid,
+            $scan->selfie_filename ?? ''
+        ),
+        'idphoto_url' => quizaccess_tagproctoring_pluginfile_url(
+            $context,
+            'idphoto',
+            $scan->userid,
+            $scan->idphoto_filename ?? ''
+        ),
         'objects'             => $scan->scan_objects ? (json_decode($scan->scan_objects, true) ?: []) : [],
         'suspicious'          => !empty($scan->scan_suspicious),
         'face_match_verified' => isset($scan->face_match_verified) ? (int) $scan->face_match_verified : null,
@@ -277,7 +302,7 @@ foreach ($studentslist as $s) {
 // Pass action URLs only via js_call_amd (small, safe).
 // Student data is embedded as a JSON script tag to avoid the 1024-char limit.
 $PAGE->requires->js_call_amd('quizaccess_tagproctoring/report', 'init', [
-    null, // students loaded from inline JSON
+    null, // Students loaded from inline JSON.
     [
         'setOverrideUrl'  => $setoverrideurl,
         'deleteShotsUrl'  => $deleteshotsurl,
@@ -294,6 +319,7 @@ $quizname = format_string($quizobj->get_quiz_name());
 $totalstudents = count($studentslist);
 $totalattempts = count($attempts);
 $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
+$tagproctoringfooter = $OUTPUT->footer();
 ?>
 
 <script id="tagrep-data" type="application/json"><?= $studentsjson ?></script>
@@ -422,4 +448,4 @@ $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
 
 </div>
 
-<?php echo $OUTPUT->footer(); ?>
+<?= $tagproctoringfooter ?>

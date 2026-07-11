@@ -58,6 +58,19 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
             $existing = $DB->get_record('quizaccess_tagproctoring_settings', ['quizid' => $quizid]);
         }
 
+        $licstatus = \quizaccess_tagproctoring\license::get_status();
+        $licensed = !in_array($licstatus, [
+            \quizaccess_tagproctoring\license::STATUS_UNLICENSED,
+            \quizaccess_tagproctoring\license::STATUS_EXPIRED,
+        ]);
+
+        if (!$licensed) {
+            $mform->addElement('html', \html_writer::div(
+                get_string('license_required_notice', 'quizaccess_tagproctoring'),
+                'alert alert-warning'
+            ));
+        }
+
         $mform->addElement('advcheckbox', 'tagproctoring_enabled', get_string('enableproctor', 'quizaccess_tagproctoring'));
         $mform->setDefault('tagproctoring_enabled', $existing ? (int) $existing->enabled : 0);
 
@@ -77,11 +90,23 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
         $mform->disabledIf('tagproctoring_durationsec', 'tagproctoring_enabled', 'notchecked');
         $mform->disabledIf('tagproctoring_durationsec', 'tagproctoring_enableroomscan', 'notchecked');
 
-        $mform->addElement('advcheckbox', 'tagproctoring_rescanperattempt',
-            get_string('rescanperattempt', 'quizaccess_tagproctoring'));
+        $mform->addElement(
+            'advcheckbox',
+            'tagproctoring_rescanperattempt',
+            get_string('rescanperattempt', 'quizaccess_tagproctoring')
+        );
         $mform->setDefault('tagproctoring_rescanperattempt', $existing ? (int) $existing->rescanperattempt : 0);
         $mform->disabledIf('tagproctoring_rescanperattempt', 'tagproctoring_enabled', 'notchecked');
         $mform->disabledIf('tagproctoring_rescanperattempt', 'tagproctoring_enableroomscan', 'notchecked');
+
+        if (!$licensed) {
+            $mform->freeze([
+                'tagproctoring_enabled',
+                'tagproctoring_enableroomscan',
+                'tagproctoring_durationsec',
+                'tagproctoring_rescanperattempt',
+            ]);
+        }
     }
 
     /**
@@ -134,8 +159,10 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
 
         // Disable plugin if license is expired or not activated.
         $licstatus = \quizaccess_tagproctoring\license::get_status();
-        if ($licstatus === \quizaccess_tagproctoring\license::STATUS_EXPIRED ||
-            $licstatus === \quizaccess_tagproctoring\license::STATUS_UNLICENSED) {
+        if (
+            $licstatus === \quizaccess_tagproctoring\license::STATUS_EXPIRED ||
+            $licstatus === \quizaccess_tagproctoring\license::STATUS_UNLICENSED
+        ) {
             return null;
         }
 
@@ -220,7 +247,8 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
         $mform->addElement('html', $wizardhtml);
 
         // Hide the Moodle submit button and the advcheckbox — both are controlled by wizard JS.
-        $mform->addElement('html',
+        $mform->addElement(
+            'html',
             '<style>
                 #id_submitbutton { display:none !important; }
                 .fitem:has(#id_tagproctoring_consent) { display:none !important; }

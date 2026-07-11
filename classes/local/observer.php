@@ -24,13 +24,10 @@
 
 namespace quizaccess_tagproctoring\local;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Handles Moodle events relevant to TAG Proctoring.
  */
 class observer {
-
     /**
      * Fires when a quiz attempt is submitted.
      *

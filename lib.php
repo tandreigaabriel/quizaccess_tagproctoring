@@ -127,9 +127,9 @@ function quizaccess_tagproctoring_calculate_attempt_risk(
     // Face-match penalty (selfie vs ID photo comparison during room scan).
     if ($facematch !== null) {
         if ($facematch === 0) {
-            $score += 40; // clear mismatch
+            $score += 40; // Clear mismatch.
         } else if ($facematch === -1) {
-            $score += 10; // unknown / no face detected in selfie
+            $score += 10; // Unknown, no face detected in selfie.
         }
     }
 

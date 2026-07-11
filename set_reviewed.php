@@ -64,7 +64,6 @@ try {
 
     ob_end_clean();
     echo json_encode(['status' => 'ok']);
-
 } catch (Throwable $e) {
     ob_end_clean();
     http_response_code(500);

@@ -23,7 +23,6 @@
  */
 
 require_once(__DIR__ . '/../../../../config.php');
-defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/quiz/accessrule/tagproctoring/lib.php');
 
 $cmid = required_param('cmid', PARAM_INT);
@@ -55,7 +54,9 @@ echo $OUTPUT->header();
 echo html_writer::start_div('container-fluid mt-3');
 echo html_writer::tag('h4', $title);
 $started = userdate($attempt->timestart);
-$finished = $attempt->timefinish ? userdate($attempt->timefinish) : get_string('screenshots_inprogress', 'quizaccess_tagproctoring');
+$finished = $attempt->timefinish
+    ? userdate($attempt->timefinish)
+    : get_string('screenshots_inprogress', 'quizaccess_tagproctoring');
 
 $text = get_string('screenshots_attemptinfo', 'quizaccess_tagproctoring', [
     'started'  => $started,
@@ -89,7 +90,11 @@ if ($events) {
 
 // Screenshots grid.
 if ($screenshots) {
-    echo html_writer::tag('h5', get_string('screenshots_grid_heading', 'quizaccess_tagproctoring', count($screenshots)), ['class' => 'mt-4']);
+    echo html_writer::tag(
+        'h5',
+        get_string('screenshots_grid_heading', 'quizaccess_tagproctoring', count($screenshots)),
+        ['class' => 'mt-4']
+    );
     echo html_writer::start_div('row');
     foreach ($screenshots as $shot) {
         $url = moodle_url::make_pluginfile_url(

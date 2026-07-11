@@ -42,7 +42,7 @@ $tasks = [
         'hour'        => '2',
         'day'         => '*',
         'month'       => '*',
-        'dayofweek'   => '0', // Sunday
+        'dayofweek'   => '0', // Sunday.
         'disabled'    => 0,
     ],
 ];

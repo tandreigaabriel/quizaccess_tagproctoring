@@ -24,11 +24,11 @@
 
 namespace quizaccess_tagproctoring\local\report;
 
+defined('MOODLE_INTERNAL') || die();
+
 use moodle_url;
 use table_sql;
 use html_writer;
-
-defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/tablelib.php');
 require_once($CFG->dirroot . '/mod/quiz/accessrule/tagproctoring/lib.php');
@@ -40,20 +40,64 @@ if (class_exists('mod_quiz\quiz_attempt')) {
     class_alias('\quiz_attempt', '\tagproctoring_quiz_attempt_alias');
 }
 
-class report_list extends table_sql
-{
-
+/**
+ * Flexible table showing proctoring data for each completed quiz attempt.
+ *
+ * @package    quizaccess_tagproctoring
+ * @copyright  2026 Andrei Toma <https://www.tandreig.com>
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class report_list extends table_sql {
+    /**
+     * @var int Course ID.
+     */
     protected $cid;
+
+    /**
+     * @var int Course-module ID.
+     */
     protected $cmid;
+
+    /**
+     * @var int Quiz ID.
+     */
     protected $qid;
+
+    /**
+     * @var object Quiz object.
+     */
     protected $quizobj;
+
+    /**
+     * @var moodle_url Report base URL.
+     */
     protected $repurl;
+
+    /**
+     * @var int Records per page.
+     */
     protected $perpage = 20;
+
+    /**
+     * @var bool Whether any attempt records exist.
+     */
     protected $isrecordexists = false;
+
+    /**
+     * @var \context_module Module context.
+     */
     protected $context;
 
-    public function __construct($cid, $cmid, $qid, $quizobj, $context)
-    {
+    /**
+     * Construct the report table.
+     *
+     * @param int    $cid      Course ID.
+     * @param int    $cmid     Course-module ID.
+     * @param int    $qid      Quiz ID.
+     * @param object $quizobj  Quiz object.
+     * @param \context_module $context Module context.
+     */
+    public function __construct($cid, $cmid, $qid, $quizobj, $context) {
         parent::__construct('tagproctoring-report-table');
         $this->cid = $cid;
         $this->cmid = $cmid;
@@ -64,8 +108,12 @@ class report_list extends table_sql
         $this->inittable();
     }
 
-    protected function build_sql_properties()
-    {
+    /**
+     * Build the SQL fields, FROM clause, WHERE clause, and params for the table.
+     *
+     * @return array [$fields, $from, $where, $params]
+     */
+    protected function build_sql_properties() {
         global $DB;
 
         $nameconcatsql = $DB->sql_concat_join("' '", ['u.firstname', 'u.lastname']);
@@ -87,13 +135,17 @@ class report_list extends table_sql
         return [$fields, $from, $where, $params];
     }
 
-    protected function inittable()
-    {
+    /**
+     * Initialise the table headers, columns, SQL, and sorting.
+     *
+     * @return void
+     */
+    protected function inittable() {
         global $DB;
 
         [$fields, $from, $where, $params] = $this->build_sql_properties();
-        // $fields and $from are developer-defined SQL fragments (table/field names only).
-        // $where uses named placeholders; all values are passed via $params.
+        // Fields and FROM are developer-defined SQL fragments (table/field names only).
+        // WHERE uses named placeholders; all values are passed via params.
         // phpcs:ignore moodle.DB.RawSQL.found
         $row = $DB->get_record_sql("SELECT $fields FROM $from WHERE $where", $params, IGNORE_MULTIPLE);
         if (empty($row)) {
@@ -143,8 +195,13 @@ class report_list extends table_sql
         $this->is_collapsible = false;
     }
 
-    public function col_sumgrades($row)
-    {
+    /**
+     * Render the grade percentage for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_sumgrades($row) {
         if (is_null($row->sumgrades)) {
             return html_writer::tag(
                 'span',
@@ -161,18 +218,29 @@ class report_list extends table_sql
         return html_writer::tag('span', "$pct%", ['class' => $cls]);
     }
 
-    public function col_timefinish($row)
-    {
+    /**
+     * Render the finish time for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_timefinish($row) {
         return $row->timefinish
             ? userdate($row->timefinish, get_string('strftimerecent', 'langconfig'))
             : '-';
     }
 
-    public function col_timetakens($row)
-    {
+    /**
+     * Render the time taken for the attempt, flagging overtime.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_timetakens($row) {
         $timetaken = $row->timefinish - $row->timestart;
-        if (!$timetaken)
+        if (!$timetaken) {
             return '-';
+        }
         $quiz = $this->quizobj->get_quiz();
         $caption = format_time($timetaken);
         $cls = 'text-success';
@@ -184,9 +252,13 @@ class report_list extends table_sql
         return html_writer::tag('span', $caption, ['class' => $cls]);
     }
 
-    // Risk Level — scored with factor breakdown 
-    public function col_risk_level($row)
-    {
+    /**
+     * Render the risk level badge and factor breakdown for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_risk_level($row) {
         global $DB;
 
         $events = $DB->get_records('quizaccess_tagproctoring_events', ['attemptid' => $row->id]);
@@ -198,18 +270,17 @@ class report_list extends table_sql
         $score = 0;
         $factors = [];
 
-        // Tally events.
-        $event_counts = [];
+        $eventcounts = [];
         foreach ($events as $e) {
-            $event_counts[$e->eventtype] = ($event_counts[$e->eventtype] ?? 0) + 1;
+            $eventcounts[$e->eventtype] = ($eventcounts[$e->eventtype] ?? 0) + 1;
         }
 
         $plg = 'quizaccess_tagproctoring';
-        $high_risk = [
+        $highrisk = [
             'screenshare' => (int) (get_config($plg, 'risk_score_screenshare') ?: 50),
             'multiplescreen' => (int) (get_config($plg, 'risk_score_multiplescreen') ?: 50),
         ];
-        $med_risk = [
+        $medrisk = [
             'fullscreenexit' => (int) (get_config($plg, 'risk_score_fullscreenexit') ?: 20),
             'tabswitch' => (int) (get_config($plg, 'risk_score_tabswitch') ?: 10),
             'visibilityhidden' => (int) (get_config($plg, 'risk_score_visibilityhidden') ?: 10),
@@ -217,23 +288,23 @@ class report_list extends table_sql
             'devtools' => (int) (get_config($plg, 'risk_score_devtools') ?: 5),
         ];
 
-        foreach ($high_risk as $type => $pts) {
-            if (!empty($event_counts[$type])) {
+        foreach ($highrisk as $type => $pts) {
+            if (!empty($eventcounts[$type])) {
                 $label = get_string_manager()->string_exists('event_' . $type, 'quizaccess_tagproctoring')
                     ? get_string('event_' . $type, 'quizaccess_tagproctoring') : $type;
                 $score += $pts;
                 $factors[] = '<span style="display:block;font-size:11px;color:#dc2626;">'
-                    . '&#9940; ' . $label . ' &times;' . $event_counts[$type] . '</span>';
+                    . '&#9940; ' . $label . ' &times;' . $eventcounts[$type] . '</span>';
             }
         }
-        foreach ($med_risk as $type => $pts) {
-            if (!empty($event_counts[$type])) {
+        foreach ($medrisk as $type => $pts) {
+            if (!empty($eventcounts[$type])) {
                 $label = get_string_manager()->string_exists('event_' . $type, 'quizaccess_tagproctoring')
                     ? get_string('event_' . $type, 'quizaccess_tagproctoring') : $type;
-                $contribution = min($pts * $event_counts[$type], $pts * 3);
+                $contribution = min($pts * $eventcounts[$type], $pts * 3);
                 $score += $contribution;
                 $factors[] = '<span style="display:block;font-size:11px;color:#d97706;">'
-                    . '&#9888; ' . $label . ' &times;' . $event_counts[$type] . '</span>';
+                    . '&#9888; ' . $label . ' &times;' . $eventcounts[$type] . '</span>';
             }
         }
 
@@ -263,9 +334,13 @@ class report_list extends table_sql
         return $out;
     }
 
-    // Room Scan — inline video + detected objects 
-    public function col_room_scan($row)
-    {
+    /**
+     * Render the room scan video player and detected objects summary.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_room_scan($row) {
         global $DB;
 
         $scan = $DB->get_record('quizaccess_tagproctoring_scan', [
@@ -292,41 +367,46 @@ class report_list extends table_sql
 
         $out = '';
 
-        // Suspicious flag
+        // Suspicious flag.
         if (!empty($scan->scan_suspicious)) {
             $out .= '<div style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;'
                 . 'padding:2px 6px;border-radius:3px;margin-bottom:4px;display:inline-block;">'
                 . '&#9940; FLAGGED &mdash; Suspicious Objects</div><br>';
         }
 
-        // Compact inline video player
+        // Compact inline video player.
         $out .= '<video src="' . htmlspecialchars($url->out(), ENT_QUOTES) . '" controls muted preload="none" '
             . 'style="width:160px;border-radius:6px;border:1px solid rgba(0,0,0,.15);display:block;margin-bottom:4px;">'
             . '</video>';
 
-        // Detected objects from AI scan
+        // Detected objects from AI scan.
         if (!empty($scan->scan_objects)) {
             $objects = @json_decode($scan->scan_objects, true);
             if (is_array($objects) && !empty($objects)) {
-                $danger_items = ['cell phone', 'book', 'tablet', 'remote', 'extra_person'];
+                $dangeritems = ['cell phone', 'book', 'tablet', 'remote', 'extra_person'];
                 foreach ($objects as $cls => $count) {
-                    $bg = in_array($cls, $danger_items) ? '#dc2626' : '#6b7280';
+                    $bg = in_array($cls, $dangeritems) ? '#dc2626' : '#6b7280';
                     $label = str_replace('_', ' ', $cls);
                     $out .= '<span style="background:' . $bg . ';color:#fff;font-size:10px;'
                         . 'padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;">'
                         . htmlspecialchars($label) . ' &times;' . (int) $count . '</span>';
                 }
             } else {
-                $out .= '<small style="color:#16a34a;display:block;font-size:11px;">&#10003; No suspicious objects detected</small>';
+                $out .= '<small style="color:#16a34a;display:block;font-size:11px;">'
+                    . '&#10003; No suspicious objects detected</small>';
             }
         }
 
         return $out;
     }
 
-    // ── Screenshots
-    public function col_screenshots($row)
-    {
+    /**
+     * Render the screenshots link for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_screenshots($row) {
         global $DB;
         $count = $DB->count_records('quizaccess_tagproctoring_screenshots', ['attemptid' => $row->id]);
         if (!$count) {
@@ -347,9 +427,13 @@ class report_list extends table_sql
         );
     }
 
-    // ── Events — compact timeline
-    public function col_events($row)
-    {
+    /**
+     * Render the compact event timeline for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_events($row) {
         global $DB;
         $events = $DB->get_records('quizaccess_tagproctoring_events', ['attemptid' => $row->id], 'timecreated ASC');
         if (!$events) {
@@ -358,13 +442,11 @@ class report_list extends table_sql
 
         $hightypes = ['screenshare', 'multiplescreen'];
 
-        // Count by type for the summary line.
         $counts = [];
         foreach ($events as $e) {
             $counts[$e->eventtype] = ($counts[$e->eventtype] ?? 0) + 1;
         }
 
-        // Summary chips (one per type).
         $summary = '<div class="tagp-event-summary">';
         foreach ($counts as $type => $n) {
             $ishigh = in_array($type, $hightypes);
@@ -377,7 +459,6 @@ class report_list extends table_sql
         }
         $summary .= '</div>';
 
-        // Detailed timeline (scrollable, collapsed by default).
         $uid = 'tagp-ev-' . $row->id;
         $rows = '';
         foreach ($events as $event) {
@@ -390,7 +471,9 @@ class report_list extends table_sql
             $rows .= '<div class="tagp-event-row" style="border-left:3px solid ' . $bg . ';">'
                 . '<span class="tagp-event-time">' . $time . '</span>'
                 . '<span class="tagp-event-label">' . htmlspecialchars($label) . '</span>'
-                . (!empty($event->detail) ? '<span class="tagp-event-detail">' . htmlspecialchars($event->detail) . '</span>' : '')
+                . (!empty($event->detail)
+                    ? '<span class="tagp-event-detail">' . htmlspecialchars($event->detail) . '</span>'
+                    : '')
                 . '</div>';
         }
 
@@ -402,16 +485,26 @@ class report_list extends table_sql
         return $summary . $toggle . $detail;
     }
 
-    public function col_attempt_results($row)
-    {
+    /**
+     * Render the link to the Moodle quiz review page for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_attempt_results($row) {
         global $OUTPUT;
         $url = new moodle_url('/mod/quiz/review.php', ['attempt' => $row->id]);
         $icon = html_writer::tag('i', '', ['class' => 'fa fa-external-link']);
         return $OUTPUT->action_link($url, $icon, null, ['target' => '_blank']);
     }
 
-    public function col_delete_scan($row)
-    {
+    /**
+     * Render the delete-scan action link for the attempt.
+     *
+     * @param stdClass $row Table row data.
+     * @return string HTML output.
+     */
+    public function col_delete_scan($row) {
         if (empty($row->scanid)) {
             return html_writer::tag('span', '—', ['class' => 'text-muted']);
         }
@@ -428,8 +521,12 @@ class report_list extends table_sql
         );
     }
 
-    public function show()
-    {
+    /**
+     * Output the table or an empty-state message if no records exist.
+     *
+     * @return void
+     */
+    public function show() {
         if (!$this->isrecordexists) {
             echo html_writer::tag(
                 'p',

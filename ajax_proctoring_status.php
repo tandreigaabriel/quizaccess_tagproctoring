@@ -26,7 +26,6 @@
  */
 
 require_once(__DIR__ . '/../../../../config.php');
-defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/quiz/accessrule/tagproctoring/lib.php');
 
 ob_start();
@@ -80,7 +79,6 @@ try {
 
     ob_end_clean();
     echo json_encode($result);
-
 } catch (Throwable $e) {
     ob_end_clean();
     http_response_code(500);

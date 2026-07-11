@@ -24,78 +24,96 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Custom admin setting for the license key.
- *
- * Extends the standard text field to:
- *  - Trigger license activation whenever the key is saved.
- *  - Display the current license status badge below the input.
- */
 if (!class_exists('admin_setting_tagproctoring_licensekey')) {
-class admin_setting_tagproctoring_licensekey extends admin_setting_configtext {
-
     /**
-     * Save the key and immediately attempt activation.
+     * Custom admin setting for the license key.
      *
-     * @param string $data Value submitted by the form.
-     * @return string Empty string on success, error string on failure.
-     */
-    public function write_setting($data) {
-        $result = parent::write_setting($data);
-        if ($result === '') {
-            \quizaccess_tagproctoring\license::activate($data);
-        }
-        return $result;
-    }
-
-    /**
-     * Render the setting HTML with a live status badge appended.
+     * Triggers license activation on save and shows the current license
+     * status badge below the input field.
      *
-     * @param string $data Current saved value.
-     * @param string $query Search query (for highlighting).
-     * @return string HTML.
+     * @package    quizaccess_tagproctoring
+     * @copyright  2026 Andrei Toma <https://www.tandreig.com>
+     * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
      */
-    public function output_html($data, $query = '') {
-        $html = parent::output_html($data, $query);
-
-        $status = \quizaccess_tagproctoring\license::get_status();
-        $info   = \quizaccess_tagproctoring\license::get_info();
-
-        $badges = [
-            \quizaccess_tagproctoring\license::STATUS_VALID      => ['success',   get_string('license_status_valid',      'quizaccess_tagproctoring')],
-            \quizaccess_tagproctoring\license::STATUS_GRACE      => ['warning',   get_string('license_status_grace',      'quizaccess_tagproctoring')],
-            \quizaccess_tagproctoring\license::STATUS_EXPIRED    => ['danger',    get_string('license_status_expired',    'quizaccess_tagproctoring')],
-            \quizaccess_tagproctoring\license::STATUS_UNLICENSED => ['secondary', get_string('license_status_unlicensed', 'quizaccess_tagproctoring')],
-        ];
-
-        [$cls, $label] = $badges[$status] ?? ['secondary', $status];
-
-        $badge = '<span class="badge badge-' . $cls . ' p-2" style="font-size:0.85em">' . $label . '</span>';
-
-        $detail = '';
-        if ($info) {
-            $plan = !empty($info->plan) ? ucfirst($info->plan) : '';
-            if ($plan) {
-                $detail .= ' &nbsp;<strong>' . get_string('license_plan', 'quizaccess_tagproctoring') . ':</strong> ' . htmlspecialchars($plan);
+    class admin_setting_tagproctoring_licensekey extends admin_setting_configtext {
+        /**
+         * Save the key and immediately attempt activation.
+         *
+         * @param string $data Value submitted by the form.
+         * @return string Empty string on success, error string on failure.
+         */
+        public function write_setting($data) {
+            $result = parent::write_setting($data);
+            if ($result === '') {
+                \quizaccess_tagproctoring\license::activate($data);
             }
-            if (!empty($info->expires_at)) {
-                $detail .= ' &nbsp;<strong>' . get_string('license_expires', 'quizaccess_tagproctoring') . ':</strong> ' . userdate($info->expires_at, get_string('strftimedate', 'langconfig'));
-            }
-            if (!empty($info->domain)) {
-                $detail .= ' &nbsp;<strong>' . get_string('license_domain', 'quizaccess_tagproctoring') . ':</strong> ' . htmlspecialchars($info->domain);
-            }
+            return $result;
         }
 
-        return $html . '<div class="mt-2 mb-1">' . $badge . $detail . '</div>';
+        /**
+         * Render the setting HTML with a live status badge appended.
+         *
+         * @param string $data Current saved value.
+         * @param string $query Search query (for highlighting).
+         * @return string HTML.
+         */
+        public function output_html($data, $query = '') {
+            $html = parent::output_html($data, $query);
+
+            $status = \quizaccess_tagproctoring\license::get_status();
+            $info   = \quizaccess_tagproctoring\license::get_info();
+
+            $badges = [
+                \quizaccess_tagproctoring\license::STATUS_VALID => [
+                    'success',
+                    get_string('license_status_valid', 'quizaccess_tagproctoring'),
+                ],
+                \quizaccess_tagproctoring\license::STATUS_GRACE => [
+                    'warning',
+                    get_string('license_status_grace', 'quizaccess_tagproctoring'),
+                ],
+                \quizaccess_tagproctoring\license::STATUS_EXPIRED => [
+                    'danger',
+                    get_string('license_status_expired', 'quizaccess_tagproctoring'),
+                ],
+                \quizaccess_tagproctoring\license::STATUS_UNLICENSED => [
+                    'secondary',
+                    get_string('license_status_unlicensed', 'quizaccess_tagproctoring'),
+                ],
+            ];
+
+            [$cls, $label] = $badges[$status] ?? ['secondary', $status];
+
+            $badge = '<span class="badge badge-' . $cls . ' p-2" style="font-size:0.85em">' . $label . '</span>';
+
+            $detail = '';
+            if ($info) {
+                $plan = !empty($info->plan) ? ucfirst($info->plan) : '';
+                if ($plan) {
+                    $detail .= ' &nbsp;<strong>'
+                        . get_string('license_plan', 'quizaccess_tagproctoring')
+                        . ':</strong> ' . htmlspecialchars($plan);
+                }
+                if (!empty($info->expires_at)) {
+                    $detail .= ' &nbsp;<strong>'
+                        . get_string('license_expires', 'quizaccess_tagproctoring')
+                        . ':</strong> '
+                        . userdate($info->expires_at, get_string('strftimedate', 'langconfig'));
+                }
+                if (!empty($info->domain)) {
+                    $detail .= ' &nbsp;<strong>'
+                        . get_string('license_domain', 'quizaccess_tagproctoring')
+                        . ':</strong> ' . htmlspecialchars($info->domain);
+                }
+            }
+
+            return $html . '<div class="mt-2 mb-1">' . $badge . $detail . '</div>';
+        }
     }
 }
-} // end class_exists guard
 
 if ($ADMIN->fulltree) {
-
-    // -------------------------------------------------------------------------
-    // License
-    // -------------------------------------------------------------------------
+    // License settings.
     $settings->add(new admin_setting_heading(
         'quizaccess_tagproctoring/license_heading',
         get_string('settings_license', 'quizaccess_tagproctoring'),
@@ -126,9 +144,7 @@ if ($ADMIN->fulltree) {
         PARAM_TEXT
     ));
 
-    // -------------------------------------------------------------------------
-    // General
-    // -------------------------------------------------------------------------
+    // General settings.
     $settings->add(new admin_setting_heading(
         'quizaccess_tagproctoring/general',
         get_string('settings_general', 'quizaccess_tagproctoring'),
@@ -221,9 +237,7 @@ if ($ADMIN->fulltree) {
         PARAM_INT
     ));
 
-    // -------------------------------------------------------------------------
-    // Detection
-    // -------------------------------------------------------------------------
+    // Detection settings.
     $settings->add(new admin_setting_heading(
         'quizaccess_tagproctoring/detection_heading',
         get_string('settings_detection', 'quizaccess_tagproctoring'),
@@ -262,9 +276,7 @@ if ($ADMIN->fulltree) {
         PARAM_TEXT
     ));
 
-    // -------------------------------------------------------------------------
-    // Risk Scoring
-    // -------------------------------------------------------------------------
+    // Risk scoring settings.
     $settings->add(new admin_setting_heading(
         'quizaccess_tagproctoring/risk_heading',
         get_string('settings_risk', 'quizaccess_tagproctoring'),

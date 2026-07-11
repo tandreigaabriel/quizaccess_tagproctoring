@@ -32,8 +32,6 @@ use core_privacy\local\request\helper;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Privacy provider for the TAG Proctoring quiz access rule.
  *
@@ -45,7 +43,6 @@ class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
-
     /**
      * Describe the personal data this plugin stores.
      *
@@ -333,12 +330,18 @@ class provider implements
             }
             $quizid = $cm->instance;
 
-            $DB->delete_records('quizaccess_tagproctoring_scan',
-                ['quizid' => $quizid, 'userid' => $userid]);
-            $DB->delete_records('quizaccess_tagproctoring_screenshots',
-                ['quizid' => $quizid, 'userid' => $userid]);
-            $DB->delete_records('quizaccess_tagproctoring_events',
-                ['quizid' => $quizid, 'userid' => $userid]);
+            $DB->delete_records(
+                'quizaccess_tagproctoring_scan',
+                ['quizid' => $quizid, 'userid' => $userid]
+            );
+            $DB->delete_records(
+                'quizaccess_tagproctoring_screenshots',
+                ['quizid' => $quizid, 'userid' => $userid]
+            );
+            $DB->delete_records(
+                'quizaccess_tagproctoring_events',
+                ['quizid' => $quizid, 'userid' => $userid]
+            );
         }
     }
 
@@ -366,14 +369,23 @@ class provider implements
             return;
         }
 
-        [$in_sql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params['quizid'] = $quizid;
 
-        $DB->delete_records_select('quizaccess_tagproctoring_scan',
-            "quizid = :quizid AND userid $in_sql", $params);
-        $DB->delete_records_select('quizaccess_tagproctoring_screenshots',
-            "quizid = :quizid AND userid $in_sql", $params);
-        $DB->delete_records_select('quizaccess_tagproctoring_events',
-            "quizid = :quizid AND userid $in_sql", $params);
+        $DB->delete_records_select(
+            'quizaccess_tagproctoring_scan',
+            "quizid = :quizid AND userid $insql",
+            $params
+        );
+        $DB->delete_records_select(
+            'quizaccess_tagproctoring_screenshots',
+            "quizid = :quizid AND userid $insql",
+            $params
+        );
+        $DB->delete_records_select(
+            'quizaccess_tagproctoring_events',
+            "quizid = :quizid AND userid $insql",
+            $params
+        );
     }
 }
