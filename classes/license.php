@@ -37,9 +37,6 @@ namespace quizaccess_tagproctoring;
  *   expires_at   int     Unix timestamp when token expires
  *   grace_until  int     Unix timestamp end of grace period (expires_at + 7 days)
  *   activated_at int     Unix timestamp of first activation
- *
- * To bypass all license checks during development, add to Moodle's config.php:
- *   define('QUIZACCESS_TAGPROCTORING_LICENSE_DEV', true);
  */
 class license {
     /** Remote activation endpoint — point this at your license server when live. */
@@ -69,11 +66,6 @@ class license {
      * @return string One of the STATUS_* constants.
      */
     public static function get_status() {
-        // Dev bypass: add define('QUIZACCESS_TAGPROCTORING_LICENSE_DEV', true); to config.php.
-        if (defined('QUIZACCESS_TAGPROCTORING_LICENSE_DEV') && QUIZACCESS_TAGPROCTORING_LICENSE_DEV) {
-            return self::STATUS_VALID;
-        }
-
         $tokenjson = get_config('quizaccess_tagproctoring', 'license_token');
         if (empty($tokenjson)) {
             return self::STATUS_UNLICENSED;

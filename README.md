@@ -52,7 +52,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 - Grades table proctoring column showing risk badge in Moodle gradebook
 - Automatic data retention cleanup via scheduled task
 - Full Moodle Privacy API (GDPR data export and deletion)
-- Licence key management with activation via Moodle Marketplace
+- Licence key management with automatic activation
 
 ## Requirements
 
@@ -60,7 +60,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 - PHP 8.1 or later
 - HTTPS required — webcam, screen share, and MediaRecorder APIs require a secure context
 - Modern browser with support for `getUserMedia`, `getDisplayMedia`, and `MediaRecorder` (Chrome 72+, Edge 79+, Firefox 66+)
-- A valid TAG Proctoring licence key (issued after Moodle Marketplace purchase)
+- A valid TAG Proctoring licence key (free — request at [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring))
 
 ## Installation
 
@@ -69,7 +69,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
    mod/quiz/accessrule/tagproctoring/
    ```
 2. Log in as a Moodle administrator and go to **Site administration → Notifications** to run the database upgrade. This creates the required tables.
-3. Go to **Site administration → Plugins → Quiz access rules → TAG Proctoring** and paste your licence key. The plugin contacts the activation service and stores the licence status.
+3. Request a free licence key at **[tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring)** — the key is emailed to you instantly. Then go to **Site administration → Plugins → Quiz access rules → TAG Proctoring** and paste it. The plugin contacts the activation service and stores the licence status.
 4. Enable the access rule on a quiz via **Quiz settings → Extra restrictions on attempts → Enable TAG Proctoring**.
 
 ## Configuration
@@ -78,7 +78,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 
 | Setting                     | Description                                                             |
 | --------------------------- | ----------------------------------------------------------------------- |
-| Licence key                 | Key issued after Moodle Marketplace purchase                            |
+| Licence key                 | Free key — request at tandreig.com/request-key                          |
 | Enable room scan            | Master switch for the room scan wizard step                             |
 | Enable screenshots          | Master switch for in-exam screenshot capture                            |
 | Enable event logging        | Master switch for in-exam event tracking                                |
@@ -106,7 +106,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 **Author:** Andrei Toma — [tandreig.com](https://www.tandreig.com)  
 **Plugin page:** [tandreig.com/plugins/proctoring-system](https://tandreig.com/plugins/proctoring-system)  
 **Support:** [tandreig.com/plugins/support](https://tandreig.com/plugins/support)  
-**Moodle Marketplace:** Search for "TAG Proctoring" in the Moodle Plugin Directory
+**Licence key:** [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring) — free, emailed instantly
 
 ## Licence
 

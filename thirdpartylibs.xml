@@ -21,18 +21,4 @@
         <license>Apache License, Version 2.0</license>
         <licenseversion>2.0</licenseversion>
     </library>
-    <library>
-        <location>vendor/js/face-api.js</location>
-        <name>face-api.js</name>
-        <version>0.22.2</version>
-        <license>MIT</license>
-        <licenseversion></licenseversion>
-    </library>
-    <library>
-        <location>vendor/models</location>
-        <name>face-api.js model weights</name>
-        <version>0.22.2</version>
-        <license>MIT</license>
-        <licenseversion></licenseversion>
-    </library>
 </libraries>
