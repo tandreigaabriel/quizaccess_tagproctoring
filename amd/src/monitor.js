@@ -21,10 +21,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
+define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(Ajax, Str) {
 
     var screenshotInterval = null;
     var webcamStream = null;
+    // Overlay strings loaded from Moodle lang on init.
+    var OS = {};
     var liveVideo = null;          // persistent hidden video element for webcam frame capture
     var screenVideo = null;        // persistent hidden video element for screen-share frame capture
     var cfg = {};
@@ -161,16 +163,16 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
         el.innerHTML = [
             '<div style="text-align:center;color:#fff;max-width:480px;padding:40px;">',
             '<h2 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#fff;">',
-            'Screen Sharing Stopped</h2>',
+            OS.sharestop_title + '</h2>',
             '<p style="color:#94a3b8;font-size:15px;line-height:1.5;margin:0 0 8px;">',
-            'You stopped screen sharing. This has been recorded as a violation.</p>',
+            OS.sharestop_body1 + '</p>',
             '<p style="color:#94a3b8;font-size:15px;line-height:1.5;margin:0 0 28px;">',
-            'You must restart screen sharing to continue your exam.</p>',
+            OS.sharestop_body2 + '</p>',
             '<button id="tagproctor-ss-restart" style="',
             'background:#334155;color:#fff;border:none;',
             'padding:14px 32px;border-radius:10px;font-size:16px;font-weight:600;',
             'cursor:pointer;box-shadow:0 4px 16px rgba(51,65,85,.4);">',
-            'Restart Screen Sharing</button>',
+            OS.sharestop_btn + '</button>',
             '</div>'
         ].join('');
         document.body.appendChild(el);
@@ -938,6 +940,19 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax"], function(Ajax) {
             if (checkEnvironment()) {
                 return;
             }
+            // Pre-load overlay strings so showScreenShareStopOverlay() is synchronous.
+            var comp = 'quizaccess_tagproctoring';
+            Str.get_strings([
+                {key: 'overlay_sharestop_title', component: comp},
+                {key: 'overlay_sharestop_body1', component: comp},
+                {key: 'overlay_sharestop_body2', component: comp},
+                {key: 'overlay_sharestop_btn',   component: comp},
+            ]).then(function(strs) {
+                OS.sharestop_title = strs[0];
+                OS.sharestop_body1 = strs[1];
+                OS.sharestop_body2 = strs[2];
+                OS.sharestop_btn   = strs[3];
+            });
 
             // Log browser and OS info once at session start so invigilators can
             // see what environment the student used without reading raw user-agent strings.

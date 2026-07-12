@@ -1,0 +1,169 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+    @package    quizaccess_tagproctoring
+    @copyright  2026 Andrei Toma <https://www.tandreig.com>
+    @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
+{{!
+    Report page shell: stats bar, student list panel, sessions panel,
+    flags/carousel panel, and lightbox overlay.
+
+    @template quizaccess_tagproctoring/report
+
+    Context variables required:
+    * studentsjson {string} Raw JSON student data embedded in a script tag.
+    * quizname {string} Quiz display name.
+    * totalstudents {number} Number of enrolled students with attempts.
+    * totalattempts {number} Total finished quiz attempts.
+    * stathigh {number} Count of high-risk attempts.
+    * statreview {number} Count of needs-review attempts.
+    * statvalid {number} Count of valid attempts.
+    * csvexporturl {string} URL for the CSV export download.
+}}
+
+<script id="tagrep-data" type="application/json">{{{studentsjson}}}</script>
+
+<div class="tagrep-stats-bar">
+  <div class="tagrep-stat">
+    <span class="tagrep-stat-num">{{totalattempts}}</span>
+    <span class="tagrep-stat-lbl">{{#str}} report_stat_total_attempts, quizaccess_tagproctoring {{/str}}</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--high">
+    <span class="tagrep-stat-num">{{stathigh}}</span>
+    <span class="tagrep-stat-lbl">&#x26d4; {{#str}} report_stat_high_risk, quizaccess_tagproctoring {{/str}}</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--review">
+    <span class="tagrep-stat-num">{{statreview}}</span>
+    <span class="tagrep-stat-lbl">&#x26a0; {{#str}} report_stat_needs_review, quizaccess_tagproctoring {{/str}}</span>
+  </div>
+  <div class="tagrep-stat tagrep-stat--valid">
+    <span class="tagrep-stat-num">{{statvalid}}</span>
+    <span class="tagrep-stat-lbl">&#x2713; {{#str}} report_stat_valid, quizaccess_tagproctoring {{/str}}</span>
+  </div>
+</div>
+
+<div class="tagrep-wrap" id="tagrep-root">
+
+  <nav class="tagrep-nav" aria-label="breadcrumb">
+    <span class="tagrep-nav-item tagrep-nav-item--active" id="tagrep-bc-students"
+          onclick="tagRepNav('students')">{{#str}} report_nav_all_students, quizaccess_tagproctoring {{/str}}</span>
+    <span class="tagrep-nav-sep tagrep-bc-hide" id="tagrep-bc-sep1">&#x203a;</span>
+    <span class="tagrep-nav-item tagrep-bc-hide" id="tagrep-bc-sessions"
+          onclick="tagRepNav('sessions')"></span>
+    <span class="tagrep-nav-sep tagrep-bc-hide" id="tagrep-bc-sep2">&#x203a;</span>
+    <span class="tagrep-nav-item tagrep-bc-hide" id="tagrep-bc-flags"></span>
+  </nav>
+
+  <div class="tagrep-panel" id="tagrep-panel-students">
+    <div class="tagrep-card">
+      <div class="tagrep-card-hd">
+        <div>
+          <h4 class="tagrep-title">&#x1f3a5; {{quizname}}</h4>
+          <p class="tagrep-subtitle">{{totalstudents}} students &nbsp;&middot;&nbsp; {{totalattempts}} completed attempts</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" class="tagrep-search"
+            placeholder="{{#str}} report_search_placeholder, quizaccess_tagproctoring {{/str}}"
+            oninput="tagRepSearch(this.value)">
+          <a href="{{csvexporturl}}" class="tagrep-btn tagrep-btn--outline"
+            style="white-space:nowrap;font-size:12px;padding:6px 12px;">
+            &#x1f4e5; Export CSV
+          </a>
+        </div>
+      </div>
+      <div class="tagrep-table-wrap">
+        <table class="tagrep-table" id="tagrep-student-table">
+          <thead>
+            <tr>
+              <th>{{#str}} report_col_student, quizaccess_tagproctoring {{/str}}</th>
+              <th>{{#str}} report_col_email, quizaccess_tagproctoring {{/str}}</th>
+              <th>{{#str}} report_col_attempts, quizaccess_tagproctoring {{/str}}</th>
+              <th>{{#str}} report_col_last_attempt, quizaccess_tagproctoring {{/str}}</th>
+              <th>{{#str}} report_col_status, quizaccess_tagproctoring {{/str}}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tagrep-tbody"></tbody>
+        </table>
+        <p class="tagrep-empty" id="tagrep-empty" style="display:none">
+          {{#str}} report_no_match, quizaccess_tagproctoring {{/str}}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tagrep-panel" id="tagrep-panel-sessions" style="display:none">
+    <div id="tagrep-sessions-content"></div>
+  </div>
+
+  <div class="tagrep-panel" id="tagrep-panel-flags" style="display:none">
+    <div class="tagrep-card">
+      <div class="tagrep-card-hd">
+        <div>
+          <h5 class="tagrep-title" style="font-size:16px;" id="tagrep-flags-title">
+            {{#str}} report_potential_violations, quizaccess_tagproctoring {{/str}}
+          </h5>
+          <p class="tagrep-subtitle" id="tagrep-flags-sub"></p>
+        </div>
+      </div>
+      <div class="tagrep-flags-layout">
+
+        <div class="tagrep-flags-left">
+          <div class="tagrep-section-hd">
+            {{#str}} report_rule_categories, quizaccess_tagproctoring {{/str}}
+          </div>
+          <div id="tagrep-cat-list"></div>
+          <div id="tagrep-scan-section" style="display:none">
+            <div class="tagrep-section-hd" style="margin-top:0;border-top:1px solid #f0f0f0;">
+              {{#str}} report_room_scan_video, quizaccess_tagproctoring {{/str}}
+            </div>
+            <video id="tagrep-scan-video" controls muted preload="none" class="tagrep-scan-video"></video>
+          </div>
+        </div>
+
+        <div class="tagrep-flags-right">
+          <div class="tagrep-carousel-hd">
+            <span id="tagrep-carousel-title">
+              {{#str}} report_carousel_evidence_title, quizaccess_tagproctoring {{/str}}
+            </span>
+            <span id="tagrep-carousel-count"></span>
+          </div>
+          <div class="tagrep-carousel-area" id="tagrep-carousel-area">
+            <div class="tagrep-carousel-empty" id="tagrep-carousel-empty">
+              <span style="font-size:48px;display:block;margin-bottom:12px;">&#x1f4f7;</span>
+              {{#str}} report_carousel_empty_default, quizaccess_tagproctoring {{/str}}
+            </div>
+            <div class="tagrep-carousel" id="tagrep-carousel" style="display:none"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="tagrep-lightbox" id="tagrep-lightbox" style="display:none"
+       onclick="tagRepCloseLightbox()">
+    <div class="tagrep-lightbox-inner" onclick="event.stopPropagation()">
+      <img id="tagrep-lightbox-img" src="" alt="Screenshot">
+      <p id="tagrep-lightbox-caption"></p>
+      <button class="tagrep-nav-btn" style="margin-top:4px;" onclick="tagRepCloseLightbox()">
+        &#x2715; {{#str}} report_close, quizaccess_tagproctoring {{/str}}
+      </button>
+    </div>
+  </div>
+
+</div>

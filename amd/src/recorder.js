@@ -23,10 +23,12 @@
 
 /* global cocoSsd, blazeface */
 
-define("quizaccess_tagproctoring/recorder", [], function() {
+define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
     'use strict';
 
     var cfg = {};
+    // Error strings loaded from Moodle lang on init.
+    var ES = {};
 
     // Step completion flags: 0=rules, 1=roomscan, 2=selfie, 3=idphoto, 4=screenshare.
     var done = [false, false, false, false, false];
@@ -146,7 +148,7 @@ define("quizaccess_tagproctoring/recorder", [], function() {
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            callback(null, new Error('Media devices are not available in this browser.'));
+            callback(null, new Error(ES.media_unavailable || 'Media devices are not available in this browser.'));
             return;
         }
 
@@ -1492,6 +1494,11 @@ define("quizaccess_tagproctoring/recorder", [], function() {
          */
         init: function(config) {
             cfg = config;
+            Str.get_strings([
+                {key: 'error_media_unavailable', component: 'quizaccess_tagproctoring'},
+            ]).then(function(strs) {
+                ES.media_unavailable = strs[0];
+            });
 
             /**
              * @returns {void}

@@ -31,161 +31,32 @@ class observer {
     /**
      * Fires when a quiz attempt is submitted.
      *
-     * Calculates risk using the canonical function. If the result is not clean
-     * and email alerts are enabled in plugin settings, sends one summary email to every
-     * user who holds quizaccess/tagproctoring:viewreport in that quiz context.
+     * Queues a lightweight ad-hoc task that does all the heavy DB work and email
+     * sending outside the event-dispatch critical path.
      *
      * @param \mod_quiz\event\attempt_submitted $event
      * @return void
      */
     public static function attempt_submitted(\mod_quiz\event\attempt_submitted $event): void {
-        global $DB, $CFG;
-
         if (!get_config('quizaccess_tagproctoring', 'emailalerts')) {
             return;
         }
 
-        $attemptid = (int) $event->objectid;
-        $quizid    = (int) ($event->other['quizid'] ?? 0);
-        $userid    = (int) $event->relateduserid;
+        $quizid = (int) ($event->other['quizid'] ?? 0);
+        $userid = (int) $event->relateduserid;
 
         if (!$quizid || !$userid) {
             return;
         }
 
-        // Aggregate event counts for this attempt.
-        $eventcounts = [];
-        foreach ($DB->get_records('quizaccess_tagproctoring_events', ['attemptid' => $attemptid]) as $e) {
-            $eventcounts[$e->eventtype] = ($eventcounts[$e->eventtype] ?? 0) + 1;
-        }
-
-        // Get scan data.
-        $scan           = $DB->get_record('quizaccess_tagproctoring_scan', ['quizid' => $quizid, 'userid' => $userid]);
-        $scansuspicious = $scan && !empty($scan->scan_suspicious);
-        $facematch      = ($scan && isset($scan->face_match_verified)) ? (int) $scan->face_match_verified : null;
-
-        require_once($CFG->dirroot . '/mod/quiz/accessrule/tagproctoring/lib.php');
-        $risk = quizaccess_tagproctoring_calculate_attempt_risk($eventcounts, $scansuspicious, $facematch);
-
-        $hasflags = !empty($eventcounts) || $scansuspicious || $facematch === 0 || $facematch === -1;
-        if (!$hasflags || $risk['risk'] === 'low') {
-            return;
-        }
-
-        $context  = $event->get_context();
-        $recipients = self::get_alert_recipients($context);
-
-        if (empty($recipients)) {
-            return;
-        }
-
-        $student = $DB->get_record('user', ['id' => $userid]);
-        $quiz    = $DB->get_record('quiz', ['id' => $quizid], 'id, name');
-        $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], 'id, attempt');
-
-        if (!$student || !$quiz) {
-            return;
-        }
-
-        $eventsummary = self::format_event_summary($eventcounts);
-        $screenshotcount = $DB->count_records('quizaccess_tagproctoring_screenshots', ['attemptid' => $attemptid]);
-
-        $reporturl = new \moodle_url('/mod/quiz/accessrule/tagproctoring/report.php', [
-            'cid'  => $event->courseid,
-            'cmid' => $context->instanceid,
-            'qid'  => $quizid,
+        $task = new \quizaccess_tagproctoring\task\send_attempt_alert();
+        $task->set_custom_data([
+            'attemptid' => (int) $event->objectid,
+            'quizid'    => $quizid,
+            'userid'    => $userid,
+            'courseid'  => (int) $event->courseid,
+            'cmid'      => (int) $event->get_context()->instanceid,
         ]);
-
-        $a              = new \stdClass();
-        $a->student     = fullname($student);
-        $a->quiz        = format_string($quiz->name);
-        $a->attempt     = (int) ($attempt->attempt ?? 1);
-        $a->risk        = get_string('report_risk_' . $risk['risk'], 'quizaccess_tagproctoring');
-        $a->score       = (int) $risk['score'];
-        $a->events      = $eventsummary ?: get_string('email_no_events', 'quizaccess_tagproctoring');
-        $a->screenshots = $screenshotcount;
-        $a->reporturl   = $reporturl->out(false);
-
-        $subject = get_string('email_attempt_subject', 'quizaccess_tagproctoring', $a);
-        $body    = get_string('email_attempt_body', 'quizaccess_tagproctoring', $a);
-        $noreply = \core_user::get_noreply_user();
-
-        foreach ($recipients as $recipient) {
-            email_to_user($recipient, $noreply, $subject, $body);
-        }
-    }
-
-    /**
-     * Get configured alert recipients, falling back to quiz teachers.
-     *
-     * @param \context $context Quiz module context.
-     * @return array User-like recipient records for email_to_user().
-     */
-    private static function get_alert_recipients(\context $context): array {
-        $configured = trim((string) get_config('quizaccess_tagproctoring', 'emailrecipients'));
-
-        if ($configured !== '') {
-            $emails = preg_split('/[\s,;]+/', $configured, -1, PREG_SPLIT_NO_EMPTY);
-            $recipients = [];
-
-            foreach (array_unique($emails) as $email) {
-                $email = trim($email);
-                if (!validate_email($email)) {
-                    continue;
-                }
-
-                $recipient = new \stdClass();
-                $recipient->id = -99;
-                $recipient->email = $email;
-                $recipient->firstname = get_string('pluginname', 'quizaccess_tagproctoring');
-                $recipient->lastname = get_string('email_recipient_lastname', 'quizaccess_tagproctoring');
-                $recipient->firstnamephonetic = '';
-                $recipient->lastnamephonetic = '';
-                $recipient->middlename = '';
-                $recipient->alternatename = '';
-                $recipient->mailformat = FORMAT_PLAIN;
-                $recipient->maildisplay = 1;
-                $recipient->lang = current_language();
-                $recipient->deleted = 0;
-                $recipient->suspended = 0;
-                $recipients[] = $recipient;
-            }
-
-            return $recipients;
-        }
-
-        return get_users_by_capability(
-            $context,
-            'quizaccess/tagproctoring:viewreport',
-            'u.*',
-            'u.lastname ASC'
-        );
-    }
-
-    /**
-     * Format event counts for the teacher email.
-     *
-     * @param array $eventcounts Associative array of eventtype => count.
-     * @return string Human-readable summary lines.
-     */
-    private static function format_event_summary(array $eventcounts): string {
-        if (empty($eventcounts)) {
-            return '';
-        }
-
-        ksort($eventcounts);
-        $lines = [];
-
-        foreach ($eventcounts as $eventtype => $count) {
-            $stringid = 'event_' . $eventtype;
-            if (get_string_manager()->string_exists($stringid, 'quizaccess_tagproctoring')) {
-                $label = get_string($stringid, 'quizaccess_tagproctoring');
-            } else {
-                $label = ucfirst(str_replace(['_', '-'], ' ', $eventtype));
-            }
-            $lines[] = '- ' . $label . ': ' . (int) $count;
-        }
-
-        return implode("\n", $lines);
+        \core\task\manager::queue_adhoc_task($task, true);
     }
 }

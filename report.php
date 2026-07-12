@@ -320,132 +320,22 @@ $totalstudents = count($studentslist);
 $totalattempts = count($attempts);
 $studentsjson = json_encode($studentslist, JSON_HEX_TAG | JSON_HEX_AMP);
 $tagproctoringfooter = $OUTPUT->footer();
-?>
 
-<script id="tagrep-data" type="application/json"><?= $studentsjson ?></script>
+$csvexporturl = (new moodle_url(
+    '/mod/quiz/accessrule/tagproctoring/export_csv.php',
+    ['cmid' => $cmid, 'qid' => $qid, 'sesskey' => sesskey()]
+))->out(false);
 
-<div class="tagrep-stats-bar">
-  <div class="tagrep-stat">
-    <span class="tagrep-stat-num"><?= $totalattempts ?></span>
-    <span class="tagrep-stat-lbl">Total Attempts</span>
-  </div>
-  <div class="tagrep-stat tagrep-stat--high">
-    <span class="tagrep-stat-num"><?= $stathigh ?></span>
-    <span class="tagrep-stat-lbl">&#x26d4; High Risk</span>
-  </div>
-  <div class="tagrep-stat tagrep-stat--review">
-    <span class="tagrep-stat-num"><?= $statreview ?></span>
-    <span class="tagrep-stat-lbl">&#x26a0; Needs Review</span>
-  </div>
-  <div class="tagrep-stat tagrep-stat--valid">
-    <span class="tagrep-stat-num"><?= $statvalid ?></span>
-    <span class="tagrep-stat-lbl">&#x2713; Valid</span>
-  </div>
-</div>
+$templatectx = [
+    'studentsjson'  => $studentsjson,
+    'quizname'      => $quizname,
+    'totalstudents' => $totalstudents,
+    'totalattempts' => $totalattempts,
+    'stathigh'      => $stathigh,
+    'statreview'    => $statreview,
+    'statvalid'     => $statvalid,
+    'csvexporturl'  => $csvexporturl,
+];
 
-<div class="tagrep-wrap" id="tagrep-root">
-
-
-  <nav class="tagrep-nav" aria-label="breadcrumb">
-    <span class="tagrep-nav-item tagrep-nav-item--active" id="tagrep-bc-students" onclick="tagRepNav('students')">All
-      Students</span>
-    <span class="tagrep-nav-sep tagrep-bc-hide" id="tagrep-bc-sep1">›</span>
-    <span class="tagrep-nav-item tagrep-bc-hide" id="tagrep-bc-sessions" onclick="tagRepNav('sessions')"></span>
-    <span class="tagrep-nav-sep tagrep-bc-hide" id="tagrep-bc-sep2">›</span>
-    <span class="tagrep-nav-item tagrep-bc-hide" id="tagrep-bc-flags"></span>
-  </nav>
-
-  <div class="tagrep-panel" id="tagrep-panel-students">
-    <div class="tagrep-card">
-      <div class="tagrep-card-hd">
-        <div>
-          <h4 class="tagrep-title">🎥 <?= htmlspecialchars($quizname) ?></h4>
-          <p class="tagrep-subtitle"><?= $totalstudents ?> students &nbsp;·&nbsp; <?= $totalattempts ?>
-            completed
-            attempts</p>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="text" class="tagrep-search" placeholder="Search by name or email…"
-            oninput="tagRepSearch(this.value)">
-          <a href="<?= htmlspecialchars((new moodle_url(
-              '/mod/quiz/accessrule/tagproctoring/export_csv.php',
-              ['cmid' => $cmid, 'qid' => $qid, 'sesskey' => sesskey()]
-          ))->out(false)) ?>"
-            class="tagrep-btn tagrep-btn--outline"
-            style="white-space:nowrap;font-size:12px;padding:6px 12px;">
-            &#x1f4e5; Export CSV
-          </a>
-        </div>
-      </div>
-      <div class="tagrep-table-wrap">
-        <table class="tagrep-table" id="tagrep-student-table">
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Email</th>
-              <th>Attempts</th>
-              <th>Last Attempt</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tagrep-tbody"></tbody>
-        </table>
-        <p class="tagrep-empty" id="tagrep-empty" style="display:none">No students match your search.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="tagrep-panel" id="tagrep-panel-sessions" style="display:none">
-    <div id="tagrep-sessions-content"></div>
-  </div>
-
-
-  <div class="tagrep-panel" id="tagrep-panel-flags" style="display:none">
-    <div class="tagrep-card">
-      <div class="tagrep-card-hd">
-        <div>
-          <h5 class="tagrep-title" style="font-size:16px;" id="tagrep-flags-title">Potential Violation of Rules</h5>
-          <p class="tagrep-subtitle" id="tagrep-flags-sub"></p>
-        </div>
-      </div>
-      <div class="tagrep-flags-layout">
-
-        <div class="tagrep-flags-left">
-          <div class="tagrep-section-hd">Rule Categories</div>
-          <div id="tagrep-cat-list"></div>
-          <div id="tagrep-scan-section" style="display:none">
-            <div class="tagrep-section-hd" style="margin-top:0;border-top:1px solid #f0f0f0;">Room Scan Video</div>
-            <video id="tagrep-scan-video" controls muted preload="none" class="tagrep-scan-video"></video>
-          </div>
-        </div>
-
-        <div class="tagrep-flags-right">
-          <div class="tagrep-carousel-hd">
-            <span id="tagrep-carousel-title">Screen and Webcam Evidence</span>
-            <span id="tagrep-carousel-count"></span>
-          </div>
-          <div class="tagrep-carousel-area" id="tagrep-carousel-area">
-            <div class="tagrep-carousel-empty" id="tagrep-carousel-empty">
-              <span style="font-size:48px;display:block;margin-bottom:12px;">&#x1f4f7;</span>
-              No tab or window-switch screenshots captured for this attempt
-            </div>
-            <div class="tagrep-carousel" id="tagrep-carousel" style="display:none"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div class="tagrep-lightbox" id="tagrep-lightbox" style="display:none" onclick="tagRepCloseLightbox()">
-    <div class="tagrep-lightbox-inner" onclick="event.stopPropagation()">
-      <img id="tagrep-lightbox-img" src="" alt="Screenshot">
-      <p id="tagrep-lightbox-caption"></p>
-      <button class="tagrep-nav-btn" style="margin-top:4px;" onclick="tagRepCloseLightbox()">&#x2715; Close</button>
-    </div>
-  </div>
-
-</div>
-
-<?= $tagproctoringfooter ?>
+echo $OUTPUT->render_from_template('quizaccess_tagproctoring/report', $templatectx);
+echo $tagproctoringfooter;

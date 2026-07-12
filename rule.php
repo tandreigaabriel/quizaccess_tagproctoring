@@ -246,32 +246,7 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
 
         $mform->addElement('html', $wizardhtml);
 
-        // Hide the Moodle submit button and the advcheckbox — both are controlled by wizard JS.
-        $mform->addElement(
-            'html',
-            '<style>
-                #id_submitbutton { display:none !important; }
-                .fitem:has(#id_tagproctoring_consent) { display:none !important; }
-                /* Hide the Moodle "Start attempt" modal header — wizard has its own header */
-                .modal-header:has(+ .modal-body #tagwiz-wrap),
-                .modal:has(#tagwiz-wrap) .modal-header { display:none !important; }
-                /* Stretch the modal body to fill the viewport */
-                .modal:has(#tagwiz-wrap) .modal-dialog {
-                    max-width: 100% !important;
-                    margin: 0 !important;
-                }
-                .modal:has(#tagwiz-wrap) .modal-content {
-                    border-radius: 0 !important;
-                    border: none !important;
-                    background: transparent !important;
-                    min-height: 100vh !important;
-                }
-                .modal:has(#tagwiz-wrap) .modal-body {
-                    padding: 0 !important;
-                    background: transparent !important;
-                }
-            </style>'
-        );
+        // Moodle submit button and consent checkbox are hidden via styles.css (wizard controls submission).
 
         // Read per-quiz settings for room scan toggle and duration.
         $quizsetting = $DB->get_record('quizaccess_tagproctoring_settings', ['quizid' => $quiz->id]);

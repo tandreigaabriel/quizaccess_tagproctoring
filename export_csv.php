@@ -87,14 +87,14 @@ echo "\xEF\xBB\xBF";
 $out = fopen('php://output', 'w');
 
 fputcsv($out, [
-    'Student Name',
-    'Email',
-    'Attempt #',
-    'Attempt Start',
-    'Attempt End',
-    'Event Time',
-    'Event Type',
-    'Detail',
+    get_string('csv_student_name', 'quizaccess_tagproctoring'),
+    get_string('csv_email', 'quizaccess_tagproctoring'),
+    get_string('csv_attempt_num', 'quizaccess_tagproctoring'),
+    get_string('csv_attempt_start', 'quizaccess_tagproctoring'),
+    get_string('csv_attempt_end', 'quizaccess_tagproctoring'),
+    get_string('csv_event_time', 'quizaccess_tagproctoring'),
+    get_string('csv_event_type', 'quizaccess_tagproctoring'),
+    get_string('csv_detail', 'quizaccess_tagproctoring'),
 ]);
 
 foreach ($events as $e) {

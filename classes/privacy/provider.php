@@ -110,6 +110,12 @@ class provider implements
             'privacy:metadata:quizaccess_tagproctoring_overrides'
         );
 
+        $collection->add_external_location_link(
+            'tandreig_license_server',
+            [],
+            'privacy:metadata:external:licenseserver'
+        );
+
         return $collection;
     }
 
