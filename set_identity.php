@@ -49,8 +49,10 @@ try {
     $context = context_module::instance($cm->id, MUST_EXIST);
     require_capability('quizaccess/tagproctoring:manage', $context);
 
-    $scan = $DB->get_record('quizaccess_tagproctoring_scan',
-        ['quizid' => $attempt->quiz, 'userid' => $attempt->userid]);
+    $scan = $DB->get_record(
+        'quizaccess_tagproctoring_scan',
+        ['quizid' => $attempt->quiz, 'userid' => $attempt->userid]
+    );
 
     if ($scan) {
         $DB->update_record('quizaccess_tagproctoring_scan', (object) [
