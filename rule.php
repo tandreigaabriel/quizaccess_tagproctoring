@@ -157,6 +157,10 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
             return null;
         }
 
+        if ($quizobj->is_preview_user()) {
+            return null;
+        }
+
         // Disable plugin if license is expired or not activated.
         $licstatus = \quizaccess_tagproctoring\license::get_status();
         if (
