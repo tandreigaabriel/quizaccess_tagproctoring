@@ -202,5 +202,16 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026070505, 'quizaccess', 'tagproctoring');
     }
 
+    // 2026071207 - Add timecreated index to scan table for the cleanup task.
+    if ($oldversion < 2026071207) {
+        $scantable = new xmldb_table('quizaccess_tagproctoring_scan');
+        $scantimecreated = new xmldb_index('timecreated', XMLDB_INDEX_NOTUNIQUE, ['timecreated']);
+        if (!$dbman->index_exists($scantable, $scantimecreated)) {
+            $dbman->add_index($scantable, $scantimecreated);
+        }
+
+        upgrade_plugin_savepoint(true, 2026071207, 'quizaccess', 'tagproctoring');
+    }
+
     return true;
 }

@@ -116,6 +116,12 @@ class provider implements
             'privacy:metadata:external:licenseserver'
         );
 
+        $collection->add_external_location_link(
+            'google_model_cdn',
+            [],
+            'privacy:metadata:external:modelcdn'
+        );
+
         return $collection;
     }
 

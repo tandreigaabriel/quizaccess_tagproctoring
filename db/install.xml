@@ -39,6 +39,7 @@
             <INDEXES>
                 <INDEX NAME="quizid_userid" UNIQUE="false" FIELDS="quizid, userid"/>
                 <INDEX NAME="attemptid" UNIQUE="false" FIELDS="attemptid"/>
+                <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated"/>
             </INDEXES>
         </TABLE>
 

@@ -134,6 +134,7 @@ $string['overlay_sharestop_btn'] = 'Restart Screen Sharing';
 $string['overlay_sharestop_title'] = 'Screen Sharing Stopped';
 $string['pluginname'] = 'TAG Proctoring';
 $string['privacy:metadata:external:licenseserver'] = 'This plugin contacts the TAG Proctoring licence server to activate and validate the site licence key. Only the site domain and licence key are transmitted. No personal user data is sent to this service.';
+$string['privacy:metadata:external:modelcdn'] = 'During the room scan and in-exam monitoring, the student\'s browser downloads AI model files (BlazeFace and COCO-SSD) from Google\'s content delivery network. This is a standard file download; no personal data, webcam images, or exam content are sent to Google. All AI analysis runs locally in the student\'s browser.';
 $string['privacy:metadata:quizaccess_tagproctoring_events'] = 'Stores suspicious behavioural events (tab switches, copy/paste, DevTools, etc.) logged during a quiz attempt.';
 $string['privacy:metadata:quizaccess_tagproctoring_events:attemptid'] = 'The quiz attempt this event belongs to.';
 $string['privacy:metadata:quizaccess_tagproctoring_events:detail'] = 'Additional detail about the event.';
