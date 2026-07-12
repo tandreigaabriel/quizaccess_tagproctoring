@@ -34,7 +34,7 @@ $context = context_module::instance($cmid, MUST_EXIST);
 [$course, $cm] = get_course_and_cm_from_cmid($cmid, 'quiz');
 
 require_login($course, true, $cm);
-require_capability('quizaccess/tagproctoring:viewreport', $context);
+require_capability('quizaccess/tagproctoring:manage', $context);
 
 $reporturl = quizaccess_tagproctoring_get_report_url($cid, $cmid, $qid);
 

@@ -38,7 +38,7 @@ try {
     $cm = get_coursemodule_from_instance('quiz', $attempt->quiz, 0, false, MUST_EXIST);
     $context = context_module::instance($cm->id, MUST_EXIST);
 
-    require_capability('quizaccess/tagproctoring:viewreport', $context);
+    require_capability('quizaccess/tagproctoring:manage', $context);
 
     // Delete files individually (screenshots are keyed by userid, not attemptid in file storage).
     $fs = get_file_storage();

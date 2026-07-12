@@ -42,7 +42,7 @@ try {
 
     $cm      = get_coursemodule_from_instance('quiz', $quizid, 0, false, MUST_EXIST);
     $context = context_module::instance($cm->id, MUST_EXIST);
-    require_capability('quizaccess/tagproctoring:viewreport', $context);
+    require_capability('quizaccess/tagproctoring:manage', $context);
 
     $scan = $DB->get_record('quizaccess_tagproctoring_scan', ['quizid' => $quizid, 'userid' => $userid]);
 

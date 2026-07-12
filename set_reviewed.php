@@ -39,7 +39,7 @@ try {
     $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', MUST_EXIST);
     $cm      = get_coursemodule_from_instance('quiz', $attempt->quiz, 0, false, MUST_EXIST);
     $context = context_module::instance($cm->id, MUST_EXIST);
-    require_capability('quizaccess/tagproctoring:viewreport', $context);
+    require_capability('quizaccess/tagproctoring:manage', $context);
 
     $existing = $DB->get_record('quizaccess_tagproctoring_overrides', ['attemptid' => $attemptid]);
 

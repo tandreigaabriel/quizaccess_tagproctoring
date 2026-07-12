@@ -182,7 +182,7 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
             return false;
         }
 
-        if (has_capability('moodle/course:manageactivities', $this->quizobj->get_context())) {
+        if (has_capability('quizaccess/tagproctoring:bypassproctoring', $this->quizobj->get_context())) {
             return false;
         }
 
@@ -357,7 +357,7 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
             return;
         }
 
-        if (has_capability('moodle/course:manageactivities', $this->quizobj->get_context())) {
+        if (has_capability('quizaccess/tagproctoring:bypassproctoring', $this->quizobj->get_context())) {
             return;
         }
 

@@ -40,7 +40,7 @@ $context = context_module::instance($cm->id, MUST_EXIST);
 $PAGE->set_context($context);
 
 // Capability check.
-require_capability('quizaccess/tagproctoring:viewreport', $context);
+require_capability('quizaccess/tagproctoring:manage', $context);
 
 // Delete.
 $DB->delete_records('quizaccess_tagproctoring_events', ['attemptid' => $attemptid]);
