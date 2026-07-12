@@ -1,0 +1,5 @@
+# Exclude non-plugin files from git archive exports (submission ZIPs).
+.gitattributes export-ignore
+.gitignore export-ignore
+.github export-ignore
+.idea export-ignore

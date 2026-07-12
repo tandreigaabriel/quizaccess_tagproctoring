@@ -1,4 +1,12 @@
 cnmproctorzip
+.idea/
+.vscode/
+node_modules/
+logs/
+*.log
+vendor/models/
+document.md
+firefox-safari-support.md
 howtwo.md
 improve.md
 /img
@@ -6,3 +14,4 @@ implementation-review-notes.md
 TAGPROCTORING_MEMORY.md
 issue.md
 adjust.md
+issue.md
