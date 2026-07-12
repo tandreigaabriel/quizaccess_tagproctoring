@@ -31,7 +31,6 @@ namespace quizaccess_tagproctoring\task;
  * so the observer itself stays lightweight.
  */
 class send_attempt_alert extends \core\task\adhoc_task {
-
     /**
      * Execute the task: load attempt data, evaluate risk, and send the alert email.
      */
