@@ -145,6 +145,7 @@ $setoverrideurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_overr
 $deleteshotsurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/delete_screenshots.php'))->out(false);
 $deleteeventsurl = (new moodle_url('/mod/quiz/accessrule/tagproctoring/delete_events.php'))->out(false);
 $setreviewedurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_reviewed.php'))->out(false);
+$setidentityurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/set_identity.php'))->out(false);
 $grantrescanurl  = (new moodle_url('/mod/quiz/accessrule/tagproctoring/grant_rescan.php'))->out(false);
 $deletescanbase = (new moodle_url(
     '/mod/quiz/accessrule/tagproctoring/delete_scan.php',
@@ -309,6 +310,7 @@ $PAGE->requires->js_call_amd('quizaccess_tagproctoring/report', 'init', [
         'deleteEventsUrl' => $deleteeventsurl,
         'deleteScanBase'  => $deletescanbase,
         'setReviewedUrl'  => $setreviewedurl,
+        'setIdentityUrl'  => $setidentityurl,
         'grantRescanUrl'  => $grantrescanurl,
         'sesskey'         => $reportsesskey,
         'quizid'          => (int) $quiz->id,
