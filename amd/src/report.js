@@ -432,25 +432,40 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             }
             html += '</div>';
 
-            // Face-match badge.
+            // Manual identity-verification badge + action buttons.
             if (scan) {
                 var fmv = scan.face_match_verified;
-                var fmd = scan.face_match_distance;
                 var fmBadge, fmColor;
                 if (fmv === 1) {
-                    fmBadge = '✅ ' + esc(S.report_facematch_verified || 'Face Match') +
-                        ' (' + (fmd !== null ? (fmd * 100).toFixed(0) + '%' : '') + ')';
+                    fmBadge = '✅ ' + esc(S.report_facematch_verified || 'Identity Verified');
                     fmColor = '#16a34a';
                 } else if (fmv === 0) {
-                    fmBadge = '❌ ' + esc(S.report_facematch_failed || 'Face Mismatch') +
-                        ' (' + (fmd !== null ? (fmd * 100).toFixed(0) + '%' : '') + ')';
+                    fmBadge = '❌ ' + esc(S.report_facematch_failed || 'Identity Failed');
                     fmColor = '#dc2626';
                 } else {
-                    fmBadge = '❓ ' + esc(S.report_facematch_unverified || 'ID Not Verified');
+                    fmBadge = '⬜ ' + esc(S.report_facematch_unverified || 'Pending Review');
                     fmColor = '#6b7280';
                 }
-                html += '<div style="margin-top:6px;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;' +
-                    'color:#fff;background:' + fmColor + ';display:inline-block;">' + fmBadge + '</div>';
+                html += '<div style="margin-top:6px;">';
+                html += '<span style="padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;' +
+                    'color:#fff;background:' + fmColor + ';display:inline-block;">' + fmBadge + '</span>';
+                html += '<span style="margin-left:6px;">';
+                if (fmv !== 1) {
+                    html += '<button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
+                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',1)">✅ ' +
+                        esc(S.report_identity_mark_verified || 'Mark Verified') + '</button> ';
+                }
+                if (fmv !== 0) {
+                    html += '<button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
+                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',0)">❌ ' +
+                        esc(S.report_identity_mark_failed || 'Mark Failed') + '</button>';
+                }
+                if (fmv === 1 || fmv === 0) {
+                    html += ' <button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
+                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',-1)">✕</button>';
+                }
+                html += '</span>';
+                html += '</div>';
             }
 
             html += '</div>';
@@ -981,6 +996,43 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             .catch(function() {alert('Network error saving reviewed status.');});
     }
 
+    /**
+     * Set or clear the manual identity-verification flag on a student's scan record.
+     *
+     * @param {number} uid       User ID.
+     * @param {number} attemptId Attempt ID (used server-side to resolve the scan row).
+     * @param {number} value     1 = verified, 0 = failed, -1 = clear.
+     */
+    function tagRepSetIdentity(uid, attemptId, value) {
+        var fd = new FormData();
+        fd.append('attemptid', attemptId);
+        fd.append('value', value);
+        fd.append('sesskey', CFG2.sesskey);
+
+        fetch(CFG2.setIdentityUrl, {method: 'POST', body: fd, credentials: 'same-origin'})
+            .then(function(r) {return r.json();})
+            .then(function(data) {
+                if (data.status === 'ok') {
+                    var newVal = (value === -1) ? null : value;
+                    DATA.forEach(function(s) {
+                        if (s.userid === uid) {
+                            s.attempts.forEach(function(a) {
+                                if (a.scan) {
+                                    a.scan.face_match_verified = newVal;
+                                }
+                            });
+                        }
+                    });
+                    if (currentStudent && currentStudent.userid === uid) {
+                        renderSessions(currentStudent);
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'unknown'));
+                }
+            })
+            .catch(function() {alert('Network error saving identity status.');});
+    }
+
     return {
         /**
          * Initialise the report UI with server-provided student data and action URLs.
@@ -1012,6 +1064,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             window.tagRepDeleteScreenshots= tagRepDeleteScreenshots;
             window.tagRepDeleteEvents     = tagRepDeleteEvents;
             window.tagRepSetReviewed      = tagRepSetReviewed;
+            window.tagRepSetIdentity      = tagRepSetIdentity;
 
             var comp = 'quizaccess_tagproctoring';
             Str.get_strings([
@@ -1115,6 +1168,9 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                 {key: 'report_confirm_clear_override', component: comp},
                 {key: 'report_confirm_delete_evidence', component: comp},
                 {key: 'report_confirm_delete_events', component: comp},
+                // Identity verification buttons (indices 88–89)
+                {key: 'report_identity_mark_verified', component: comp},
+                {key: 'report_identity_mark_failed',   component: comp},
             ]).then(function(strs) {
                 var i = 0;
                 // VIOLATIONS labels.
@@ -1217,6 +1273,9 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                 S.report_confirm_clear_override    = strs[i++];
                 S.report_confirm_delete_evidence   = strs[i++];
                 S.report_confirm_delete_events     = strs[i++];
+                // Identity verification buttons.
+                S.report_identity_mark_verified    = strs[i++];
+                S.report_identity_mark_failed      = strs[i++];
 
                 renderStudentList(DATA);
             });
