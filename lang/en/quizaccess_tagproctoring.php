@@ -391,6 +391,7 @@ $string['wizard_hero_title'] = 'Exam Readiness Check';
 $string['wizard_id_checklist_1'] = 'Keep your face visible above or beside the ID.';
 $string['wizard_id_checklist_2'] = 'The name, photo, and ID number must be readable.';
 $string['wizard_id_checklist_3'] = 'Hold still until the capture completes.';
+$string['wizard_id_checklist_title'] = 'ID photo checklist';
 $string['wizard_id_guide_label'] = 'Place your ID inside the green box';
 $string['wizard_id_tip'] = 'Use the green border guide to align your ID card.';
 $string['wizard_roomscan_intro'] = 'Slowly show your desk and surroundings. Remove phones, notes, books, and other unauthorised items before recording.';
