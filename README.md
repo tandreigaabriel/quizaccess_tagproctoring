@@ -108,14 +108,6 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 **Support:** [tandreig.com/plugins/support](https://tandreig.com/plugins/support)  
 **Licence key:** [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring) — free, emailed instantly
 
-## Licence
-
-This plugin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-See [LICENSE](LICENSE) or <https://www.gnu.org/licenses/> for the full licence text.
-
-## Changelog
-
 ### v1.0.0 — 2026-07-12
 
 - Initial stable release
