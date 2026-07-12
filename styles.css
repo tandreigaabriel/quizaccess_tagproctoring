@@ -1952,8 +1952,8 @@
    QUIZ ATTEMPT FORM — wizard overrides
    (moved from rule.php inline <style>)
 ═══════════════════════════════════════════════ */
-#id_submitbutton { display: none !important; }
-.fitem:has(#id_tagproctoring_consent) { display: none !important; }
+.modal:has(#tagwiz-wrap) #id_submitbutton { display: none !important; }
+.modal:has(#tagwiz-wrap) .fitem:has(#id_tagproctoring_consent) { display: none !important; }
 /* Hide the Moodle "Start attempt" modal header when the wizard is active */
 .modal-header:has(+ .modal-body #tagwiz-wrap),
 .modal:has(#tagwiz-wrap) .modal-header { display: none !important; }

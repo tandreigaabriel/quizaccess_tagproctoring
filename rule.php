@@ -157,10 +157,6 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
             return null;
         }
 
-        if ($quizobj->is_preview_user()) {
-            return null;
-        }
-
         // Disable plugin if license is expired or not activated.
         $licstatus = \quizaccess_tagproctoring\license::get_status();
         if (
@@ -181,6 +177,10 @@ class quizaccess_tagproctoring extends quizaccess_tagproctoring_parent_class_ali
      */
     public function is_preflight_check_required($attemptid) {
         global $USER, $DB;
+
+        if ($this->quizobj->is_preview_user()) {
+            return false;
+        }
 
         if (is_siteadmin($USER)) {
             return false;

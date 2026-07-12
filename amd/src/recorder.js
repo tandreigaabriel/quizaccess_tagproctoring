@@ -1404,19 +1404,23 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
      * Submit the Moodle preflight form via the first available submit button or form.submit().
      */
     function submitMoodleForm() {
-        var btn = el('id_submitbutton');
+        var form = document.getElementById('mod_quiz_preflight_form');
+        if (!form) {
+            form = document.querySelector('form[action*="startattempt.php"]');
+        }
+        if (form) {
+            var submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (submitButton) {
+                form.requestSubmit(submitButton);
+                return;
+            }
+            form.submit();
+            return;
+        }
+        // Fallback: click any visible submit button.
+        var btn = document.querySelector('button[type="submit"], input[type="submit"]');
         if (btn) {
             btn.click();
-            return;
-        }
-        var anyBtn = document.querySelector('button[type="submit"], input[type="submit"]');
-        if (anyBtn) {
-            anyBtn.click();
-            return;
-        }
-        var form = document.querySelector('form[method="post"]');
-        if (form) {
-            form.submit();
         }
     }
 
