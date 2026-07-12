@@ -1229,7 +1229,7 @@
   border-bottom: 1px solid #e5e7eb;
 }
 .tagrep-session-num { font-weight: 700; font-size: 13px; color: #374151; }
-.tagrep-session-body { display: grid; grid-template-columns: auto 1fr; gap: 14px; padding: 14px; flex: 1; }
+.tagrep-session-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; padding: 14px; flex: 1; }
 .tagrep-session-photo { flex-shrink: 0; }
 .tagrep-selfie-img {
   width: 92px; height: 70px;
@@ -1255,6 +1255,7 @@
 .tagrep-info-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-bottom: 6px; }
 .tagrep-info-lbl { color: #9ca3af; flex-shrink: 0; }
 .tagrep-info-val { color: #1f2937; text-align: right; }
+.tagrep-identity-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; row-gap: 5px; }
 
 /* Scan chips */
 .tagrep-scan-chips { padding: 0 15px 10px; display: flex; flex-wrap: wrap; gap: 4px; }

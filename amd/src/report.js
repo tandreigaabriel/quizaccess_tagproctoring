@@ -431,8 +431,17 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                     '</div>';
             }
             html += '</div>';
+            html += '</div>';
 
-            // Manual identity-verification badge + action buttons.
+            html += '<div class="tagrep-session-info">';
+            html += infoRow(S.report_inforow_start    || 'Start',           fmtDateTime(a.timestart));
+            html += infoRow(S.report_inforow_end      || 'End',             fmtDateTime(a.timefinish));
+            html += infoRow(S.report_inforow_duration || 'Duration',        fmtDuration(a.timestart, a.timefinish));
+            html += infoRow(S.report_inforow_events   || 'Events',          a.events.length + ' logged');
+            html += infoRow(S.report_inforow_evidence || 'Evidence shots',  a.screenshots.length + ' stored');
+            html += '</div>';
+
+            // Manual identity-verification badge + action buttons (full-width grid row).
             if (scan) {
                 var fmv = scan.face_match_verified;
                 var fmBadge, fmColor;
@@ -446,7 +455,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                     fmBadge = '⬜ ' + esc(S.report_facematch_unverified || 'Pending Review');
                     fmColor = '#6b7280';
                 }
-                html += '<div style="margin-top:6px;">';
+                html += '<div class="tagrep-identity-row">';
                 html += '<span style="padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;' +
                     'color:#fff;background:' + fmColor + ';display:inline-block;">' + fmBadge + '</span>';
                 html += '<span style="margin-left:6px;">';
@@ -468,15 +477,6 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                 html += '</div>';
             }
 
-            html += '</div>';
-
-            html += '<div class="tagrep-session-info">';
-            html += infoRow(S.report_inforow_start    || 'Start',           fmtDateTime(a.timestart));
-            html += infoRow(S.report_inforow_end      || 'End',             fmtDateTime(a.timefinish));
-            html += infoRow(S.report_inforow_duration || 'Duration',        fmtDuration(a.timestart, a.timefinish));
-            html += infoRow(S.report_inforow_events   || 'Events',          a.events.length + ' logged');
-            html += infoRow(S.report_inforow_evidence || 'Evidence shots',  a.screenshots.length + ' stored');
-            html += '</div>';
             html += '</div>';
 
             if (scan && scan.objects && Object.keys(scan.objects).length) {
