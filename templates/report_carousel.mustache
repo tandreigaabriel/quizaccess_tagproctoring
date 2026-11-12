@@ -1,0 +1,42 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+    @package    quizaccess_tagproctoring
+    @copyright  2026 Andrei Toma <https://www.tandreig.com>
+    @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
+{{!
+    @template quizaccess_tagproctoring/report_carousel
+
+    Example context (json):
+    {
+    "thumbnails": [
+        {
+            "class": "tagrep-carousel-thumb",
+            "index": 0,
+            "url": "https://example.com/image.jpg",
+            "time": "12:00",
+            "source": "Webcam",
+            "name": "Student"
+        }
+    ]
+}
+}}
+{{#thumbnails}}<div class="{{class}}" id="tagrep-thumb-{{index}}" onclick="tagRepOpenLightbox({{index}})" title="{{#str}} mmr_enlarge, quizaccess_tagproctoring {{/str}}">
+    {{#suspicious}}<span class="tagrep-suspicious-dot"></span>{{/suspicious}}
+    <img src="{{url}}" alt="{{#str}} mmr_screenshot, quizaccess_tagproctoring {{/str}}" loading="lazy">
+    <div class="tagrep-carousel-caption"><span class="tagrep-carousel-time">{{time}}</span><span class="tagrep-carousel-source">{{source}}</span><span class="tagrep-carousel-name">{{name}}</span></div>
+</div>{{/thumbnails}}

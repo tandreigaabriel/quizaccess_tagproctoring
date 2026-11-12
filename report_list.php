@@ -371,7 +371,7 @@ class report_list extends table_sql {
         if (!empty($scan->scan_suspicious)) {
             $out .= '<div style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;'
                 . 'padding:2px 6px;border-radius:3px;margin-bottom:4px;display:inline-block;">'
-                . '&#9940; FLAGGED &mdash; Suspicious Objects</div><br>';
+                . '&#9940; ' . get_string('report_flagged_objects', 'quizaccess_tagproctoring') . '</div><br>';
         }
 
         // Compact inline video player.
@@ -393,7 +393,7 @@ class report_list extends table_sql {
                 }
             } else {
                 $out .= '<small style="color:#16a34a;display:block;font-size:11px;">'
-                    . '&#10003; No suspicious objects detected</small>';
+                    . '&#10003; ' . get_string('report_no_objects', 'quizaccess_tagproctoring') . '</small>';
             }
         }
 
@@ -437,7 +437,7 @@ class report_list extends table_sql {
         global $DB;
         $events = $DB->get_records('quizaccess_tagproctoring_events', ['attemptid' => $row->id], 'timecreated ASC');
         if (!$events) {
-            return html_writer::tag('span', 'None', ['class' => 'text-muted small']);
+            return html_writer::tag('span', get_string('report_none', 'quizaccess_tagproctoring'), ['class' => 'text-muted small']);
         }
 
         $hightypes = ['screenshare', 'multiplescreen'];

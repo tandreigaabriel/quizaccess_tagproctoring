@@ -24,7 +24,7 @@
  * @copyright 2026 Andrei Toma <https://www.tandreig.com>
  * @license   https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define([], function() {
+define(['quizaccess_tagproctoring/strings', 'core/templates', 'core/notification'], function(I18n, Templates, Notification) {
     'use strict';
 
     var cfg = {};
@@ -51,7 +51,7 @@ define([], function() {
             th.scope = 'col';
             th.className = 'tagproctoring-col-header c' + (headerRow.cells.length);
             th.style.whiteSpace = 'nowrap';
-            th.textContent = (cfg.strings && cfg.strings.header) ? cfg.strings.header : 'Proctoring';
+            th.textContent = (cfg.strings && cfg.strings.header) ? cfg.strings.header : I18n.get('ui_proctoring');
             headerRow.appendChild(th);
         }
 
@@ -72,7 +72,7 @@ define([], function() {
             var td = document.createElement('td');
             td.className = 'tagproctoring-status-cell';
             td.style.verticalAlign = 'middle';
-            td.innerHTML = '<span style="color:#9ca3af;font-size:11px;">…</span>';
+            td.textContent = '…';
             row.appendChild(td);
         });
 
@@ -104,9 +104,9 @@ define([], function() {
                 var icons   = {high: '⚠', medium: '⚠', low: '✓'};
                 var strings = cfg.strings || {};
                 var labels  = {
-                    high:   strings.high   || 'High Risk',
-                    medium: strings.medium || 'Medium',
-                    low:    strings.low    || 'Clean',
+                    high:   strings.high   || I18n.get('ui_high_risk'),
+                    medium: strings.medium || I18n.get('ui_medium'),
+                    low:    strings.low    || I18n.get('ui_clean'),
                 };
 
                 Object.keys(rowmap).forEach(function(attemptid) {
@@ -116,7 +116,7 @@ define([], function() {
                     }
                     var info = data[attemptid];
                     if (!info) {
-                        cell.innerHTML = '<span style="color:#6b7280;font-size:11px;">—</span>';
+                        cell.textContent = '—';
                         return;
                     }
                     var risk  = info.risk || 'low';
@@ -124,12 +124,11 @@ define([], function() {
                     var icon  = icons[risk]  || '';
                     var label = labels[risk] || risk;
 
-                    cell.innerHTML = '<a href="' + cfg.reporturl
-                        + '" title="View proctoring report" style="text-decoration:none;">'
-                        + '<span style="display:inline-block;background:' + color
-                        + ';color:#fff;padding:2px 9px;border-radius:4px;'
-                        + 'font-size:11px;font-weight:700;white-space:nowrap;">'
-                        + icon + ' ' + label + '</span></a>';
+                    Templates.renderForPromise('quizaccess_tagproctoring/grades_badge', {
+                        url: cfg.reporturl, color: color, icon: icon, label: label
+                    }).then(function(result) {
+                        Templates.replaceNodeContents(cell, result.html, result.js);
+                    }).catch(Notification.exception);
                 });
             })
             .catch(function() {
@@ -137,7 +136,7 @@ define([], function() {
                 Object.keys(rowmap).forEach(function(attemptid) {
                     var cell = rowmap[attemptid].querySelector('.tagproctoring-status-cell');
                     if (cell) {
-                        cell.innerHTML = '<span style="color:#9ca3af;font-size:11px;">—</span>';
+                        cell.textContent = '—';
                     }
                 });
             });
@@ -153,12 +152,14 @@ define([], function() {
          * @param {Object} config.strings  Localised labels.
          */
         init: function(config) {
+            return I18n.load().then(function() {
             cfg = config;
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', injectColumn);
             } else {
                 injectColumn();
             }
+            });
         }
     };
 });

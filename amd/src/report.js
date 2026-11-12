@@ -21,7 +21,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
+define("quizaccess_tagproctoring/report", ['core/str', 'core/templates', 'core/notification', 'quizaccess_tagproctoring/strings'],
+function(Str, Templates, Notification, I18n) {
     'use strict';
 
     // Populated by init().
@@ -65,6 +66,25 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
     var RISK_LABEL = {invalid: '', review: '', valid: ''};
     var SEV_ORDER  = {critical: 0, high: 1, medium: 2, low: 3};
 
+    /**
+     * Render a context, discarding responses superseded for the same target.
+     *
+     * @param {string} name Template name.
+     * @param {Object} context Template data.
+     * @param {HTMLElement} target Destination element.
+     * @returns {Promise} Render completion.
+     */
+    function renderInto(name, context, target) {
+        var revision = (target.renderRevision || 0) + 1;
+        target.renderRevision = revision;
+        return Templates.renderForPromise('quizaccess_tagproctoring/' + name, context).then(function(result) {
+            if (target.renderRevision === revision) {
+                Templates.replaceNodeContents(target, result.html, result.js);
+            }
+            return result;
+        }).catch(Notification.exception);
+    }
+
     // State.
     var currentStudent = null;
     var currentAttempt = null;
@@ -81,18 +101,6 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
     }
 
     /**
-     * Escape HTML special characters.
-     *
-     * @param {*} s Value to escape.
-     * @returns {string} HTML-safe string.
-     */
-    function esc(s) {
-        return String(s || '')
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    /**
      * Return a readable evidence source label.
      *
      * @param {string}  source   Stored screenshot source token.
@@ -101,10 +109,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      */
     function evidenceSourceLabel(source, longform) {
         if (longform && source === 'screen') {
-            return S.evidence_screencapture || 'Screen capture';
+            return S.evidence_screencapture;
         }
         if (longform && source === 'webcam') {
-            return S.evidence_webcamcapture || 'Webcam capture';
+            return S.evidence_webcamcapture;
         }
         var labels = {
             screen:      S.evidence_screen,
@@ -115,7 +123,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             faceaway:    S.evidence_webcam_faceaway,
             faceturn:    S.evidence_webcam_faceturn,
         };
-        return labels[source] || (source ? source.replace(/_/g, ' ') : (S.evidence_default || 'Evidence'));
+        return labels[source] || (source ? source.replace(/_/g, ' ') : (S.evidence_default));
     }
 
     /**
@@ -145,7 +153,8 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             return '—';
         }
         var m = Math.round((end - start) / 60);
-        return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + ' min';
+        return m >= 60 ? I18n.get('report_hours_minutes', {hours: Math.floor(m / 60), minutes: m % 60}) :
+            I18n.get('report_minutes', m);
     }
 
     /**
@@ -178,22 +187,21 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
     }
 
     /**
-     * Build a coloured risk badge HTML string.
+     * Build the context for a coloured risk badge.
      *
      * @param {string} level Risk level key ('valid', 'review', 'invalid').
      * @param {string} extra Optional suffix text appended to the label.
-     * @returns {string} HTML badge element string.
+     * @returns {Object} Badge template context.
      */
     function riskBadge(level, extra) {
-        var label = extra ? (RISK_LABEL[level] + ' ' + extra) : RISK_LABEL[level];
-        return '<span class="tagrep-badge" style="background:' + RISK_COLOR[level] + ';">' + label + '</span>';
+        return {color: RISK_COLOR[level], label: RISK_LABEL[level] + (extra ? ' ' + extra : '')};
     }
 
     /**
      * Build a plain-English AI summary block for a single attempt.
      *
      * @param {Object} attempt Attempt data object.
-     * @returns {string} HTML string for the summary panel.
+     * @returns {Object} Summary template context.
      */
     function buildSummary(attempt) {
         var counts = {};
@@ -229,17 +237,16 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             if (counts[t]) {
                 var n = counts[t];
                 var lbl = LABELS[t] || t;
-                parts.push(n + ' ' + lbl + (n > 1 && lbl.slice(-1) !== 's' ? 's' : ''));
+                parts.push(n + ' ' + lbl);
             }
         });
 
         var scan = attempt.scan;
-        var suspChips = '';
-        if (scan && scan.objects && Object.keys(scan.objects).length) {
+        var suspChips = [];
+        if (scan && scan.objects) {
             Object.keys(scan.objects).forEach(function(cls) {
                 var def = SCAN_VIOLATIONS[cls] || {label: cls, sev: 'high'};
-                suspChips += '<span class="tagrep-sum-chip" style="background:' +
-                    SEV_COLOR[def.sev] + ';">' + esc(def.label) + '</span>';
+                suspChips.push({color: SEV_COLOR[def.sev], label: def.label});
             });
         }
 
@@ -252,30 +259,21 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
         }
 
         var body = parts.length
-            ? (S.summary_violations_prefix || 'Student completed exam with:') + ' ' + parts.join(', ') + '.'
-            : (S.summary_noviolations || 'No violations detected during this exam session.');
+            ? (S.summary_violations_prefix) + ' ' + parts.join(', ') + '.'
+            : (S.summary_noviolations);
 
-        return '<div class="tagrep-ai-summary">' +
-            '<div class="tagrep-ai-summary-hd">' + esc(S.summary_session || 'Session Summary') + '</div>' +
-            '<p class="tagrep-ai-summary-body">' + esc(body) + '</p>' +
-            (suspChips ? '<div class="tagrep-ai-summary-chips">' + suspChips + '</div>' : '') +
-            '<div class="tagrep-ai-summary-risk" style="color:' + riskColor + ';">' +
-            riskTxt + '</div>' +
-            '</div>';
+        return {body: body, chips: suspChips, color: riskColor, risk: riskTxt};
     }
 
     /**
-     * Build a label/value info-row HTML string.
+     * Build a label/value row context.
      *
      * @param {string} label Row label text.
      * @param {string} value Row value text.
-     * @returns {string} HTML div string.
+     * @returns {Object} Row template context.
      */
     function infoRow(label, value) {
-        return '<div class="tagrep-info-row">' +
-            '<span class="tagrep-info-lbl">' + esc(label) + '</span>' +
-            '<span class="tagrep-info-val">' + esc(value) + '</span>' +
-            '</div>';
+        return {label: label, value: value};
     }
 
     /**
@@ -305,7 +303,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
         el('tagrep-bc-flags').style.display = showF ? '' : 'none';
         if (showF) {
             el('tagrep-bc-flags').textContent =
-                (S.report_potential_violations || 'Potential Violation of Rules') +
+                (S.report_potential_violations) +
                 ' — ' + (S.report_label_attempt_num || 'Attempt #') +
                 (currentAttempt ? currentAttempt.attempt_num : '');
         }
@@ -317,31 +315,14 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      * @param {Array} data Array of student data objects to display.
      */
     function renderStudentList(data) {
-        var tbody = el('tagrep-tbody');
-        var empty = el('tagrep-empty');
-        if (!data.length) {
-            tbody.innerHTML = '';
-            empty.style.display = '';
-            return;
-        }
-        empty.style.display = 'none';
-        var rows = '';
-        data.forEach(function(s) {
-            var last = s.attempts[s.attempts.length - 1];
-            rows += '<tr>' +
-                '<td><strong>' + esc(s.name) + '</strong></td>' +
-                '<td class="tagrep-muted">' + esc(s.email) + '</td>' +
-                '<td class="tagrep-center">' + s.attempts.length + '</td>' +
-                '<td class="tagrep-muted">' + fmtDateTime(last ? last.timestart : 0) + '</td>' +
-                '<td>' + riskBadge(overallRisk(s)) + '</td>' +
-                '<td class="tagrep-td-action">' +
-                '<button class="tagrep-btn tagrep-btn--primary" onclick="tagRepOpenStudent(' + s.userid + ')">' +
-                esc(S.report_action_view_sessions || 'View Sessions') + ' →' +
-                '</button>' +
-                '</td>' +
-                '</tr>';
+        el('tagrep-empty').style.display = data.length ? 'none' : '';
+        var rows = data.map(function(student) {
+            var last = student.attempts[student.attempts.length - 1];
+            return {name: student.name, email: student.email, userid: student.userid,
+                count: student.attempts.length, last: fmtDateTime(last ? last.timestart : 0),
+                badge: riskBadge(overallRisk(student))};
         });
-        tbody.innerHTML = rows;
+        renderInto('report_students', {rows: rows}, el('tagrep-tbody'));
     }
 
     /**
@@ -379,174 +360,35 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      * @param {Object} student Student data object.
      */
     function renderSessions(student) {
-        var html = '<div class="tagrep-card">' +
-            '<div class="tagrep-card-hd">' +
-            '<div><h4 class="tagrep-title">' + esc(student.name) + '</h4>' +
-            '<p class="tagrep-subtitle">' + esc(student.email) +
-            ' &nbsp;·&nbsp; ' + student.attempts.length + ' attempt(s)</p></div>' +
-            '</div>' +
-            '<div class="tagrep-sessions-grid">';
-
-        student.attempts.forEach(function(a) {
+        var attempts = student.attempts.map(function(a) {
             var scan = a.scan;
-
-            html += '<div class="tagrep-session-card">';
-
-            var dispRisk = effectiveRisk(a);
-            html += '<div class="tagrep-session-hd">' +
-                '<span class="tagrep-session-num">' +
-                esc(S.report_label_attempt_num || 'Attempt #') + a.attempt_num +
-                '</span>' +
-                riskBadge(dispRisk, a.override_valid ? '✓ Overridden' : '') +
-                '</div>';
-
-            html += buildSummary(a);
-
-            html += '<div class="tagrep-session-body">';
-
-            // Selfie + ID photo side by side with face-match badge.
-            html += '<div class="tagrep-session-photo">';
-            html += '<div style="display:flex;gap:8px;align-items:flex-start;">';
-            if (scan && scan.selfie_url) {
-                html += '<div style="text-align:center;">' +
-                    '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">' +
-                    esc(S.report_label_selfie || 'Selfie') + '</div>' +
-                    '<img src="' + esc(scan.selfie_url) + '" class="tagrep-selfie-img"' +
-                    ' alt="' + esc(S.report_label_selfie || 'Selfie') + '"' +
-                    ' onclick="window.open(\'' + esc(scan.selfie_url) + '\',\'_blank\')"' +
-                    ' style="cursor:zoom-in;">' +
-                    '</div>';
-            } else {
-                html += '<div class="tagrep-selfie-ph">No<br>' +
-                    esc(S.report_label_selfie || 'Selfie') + '</div>';
-            }
-            if (scan && scan.idphoto_url) {
-                html += '<div style="text-align:center;">' +
-                    '<div style="font-size:10px;color:#6b7280;margin-bottom:2px;">' +
-                    esc(S.report_label_idphoto || 'ID Photo') + '</div>' +
-                    '<img src="' + esc(scan.idphoto_url) + '" class="tagrep-selfie-img"' +
-                    ' alt="' + esc(S.report_label_idphoto || 'ID Photo') + '"' +
-                    ' onclick="window.open(\'' + esc(scan.idphoto_url) + '\',\'_blank\')"' +
-                    ' style="cursor:zoom-in;">' +
-                    '</div>';
-            }
-            html += '</div>';
-            html += '</div>';
-
-            html += '<div class="tagrep-session-info">';
-            html += infoRow(S.report_inforow_start    || 'Start',           fmtDateTime(a.timestart));
-            html += infoRow(S.report_inforow_end      || 'End',             fmtDateTime(a.timefinish));
-            html += infoRow(S.report_inforow_duration || 'Duration',        fmtDuration(a.timestart, a.timefinish));
-            html += infoRow(S.report_inforow_events   || 'Events',          a.events.length + ' logged');
-            html += infoRow(S.report_inforow_evidence || 'Evidence shots',  a.screenshots.length + ' stored');
-            html += '</div>';
-
-            // Manual identity-verification badge + action buttons (full-width grid row).
-            if (scan) {
-                var fmv = scan.face_match_verified;
-                var fmBadge, fmColor;
-                if (fmv === 1) {
-                    fmBadge = '✅ ' + esc(S.report_facematch_verified || 'Identity Verified');
-                    fmColor = '#16a34a';
-                } else if (fmv === 0) {
-                    fmBadge = '❌ ' + esc(S.report_facematch_failed || 'Identity Failed');
-                    fmColor = '#dc2626';
-                } else {
-                    fmBadge = '⬜ ' + esc(S.report_facematch_unverified || 'Pending Review');
-                    fmColor = '#6b7280';
-                }
-                html += '<div class="tagrep-identity-row">';
-                html += '<span style="padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;' +
-                    'color:#fff;background:' + fmColor + ';display:inline-block;">' + fmBadge + '</span>';
-                html += '<span style="margin-left:6px;">';
-                if (fmv !== 1) {
-                    html += '<button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
-                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',1)">✅ ' +
-                        esc(S.report_identity_mark_verified || 'Mark Verified') + '</button> ';
-                }
-                if (fmv !== 0) {
-                    html += '<button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
-                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',0)">❌ ' +
-                        esc(S.report_identity_mark_failed || 'Mark Failed') + '</button>';
-                }
-                if (fmv === 1 || fmv === 0) {
-                    html += ' <button class="tagrep-btn tagrep-btn--outline" style="font-size:10px;padding:2px 7px;"' +
-                        ' onclick="tagRepSetIdentity(' + student.userid + ',' + a.id + ',-1)">✕</button>';
-                }
-                html += '</span>';
-                html += '</div>';
-            }
-
-            html += '</div>';
-
-            if (scan && scan.objects && Object.keys(scan.objects).length) {
-                html += '<div class="tagrep-scan-chips">';
-                Object.keys(scan.objects).forEach(function(cls) {
+            var fmv = scan ? scan.face_match_verified : null;
+            return {
+                userid: student.userid, id: a.id, number: a.attempt_num,
+                badge: riskBadge(effectiveRisk(a), a.override_valid ? I18n.get('mmr_overridden') : ''),
+                summary: buildSummary(a), scan: scan,
+                identity: scan ? {color: fmv === 1 ? '#16a34a' : (fmv === 0 ? '#dc2626' : '#6b7280'),
+                    label: fmv === 1 ? S.report_facematch_verified :
+                        (fmv === 0 ? S.report_facematch_failed : S.report_facematch_unverified),
+                    verify: fmv !== 1, fail: fmv !== 0, clear: fmv === 1 || fmv === 0} : null,
+                info: [infoRow(S.report_inforow_start, fmtDateTime(a.timestart)),
+                    infoRow(S.report_inforow_end, fmtDateTime(a.timefinish)),
+                    infoRow(S.report_inforow_duration, fmtDuration(a.timestart, a.timefinish)),
+                    infoRow(S.report_inforow_events, a.events.length),
+                    infoRow(S.report_inforow_evidence, a.screenshots.length)],
+                objects: scan && scan.objects ? Object.keys(scan.objects).map(function(cls) {
                     var def = SCAN_VIOLATIONS[cls] || {label: cls, sev: 'medium'};
-                    html += '<span class="tagrep-scan-chip" style="background:' + SEV_COLOR[def.sev] + ';">' +
-                        esc(def.label) + ' &times;' + scan.objects[cls] + '</span>';
-                });
-                html += '</div>';
-            }
-
-            html += '<div class="tagrep-session-actions">';
-            if (a.events.length > 0 || (scan && scan.suspicious)) {
-                html += '<button class="tagrep-btn tagrep-btn--danger"' +
-                    ' onclick="tagRepOpenFlags(' + student.userid + ',' + a.id + ')">' +
-                    '⚑ ' + esc(S.report_action_view_flags || 'View Flags') + '</button> ';
-            }
-            if (a.override_valid) {
-                html += '<button class="tagrep-btn" style="background:#16a34a;color:#fff;"' +
-                    ' onclick="tagRepSetOverride(' + student.userid + ',' + a.id + ',0)">' +
-                    '✓ ' + esc(S.report_action_clear_override || 'Valid (Clear Override)') + '</button> ';
-            } else {
-                html += '<button class="tagrep-btn tagrep-btn--outline"' +
-                    ' onclick="tagRepSetOverride(' + student.userid + ',' + a.id + ',1)">' +
-                    '✓ ' + esc(S.report_action_mark_valid || 'Mark as Valid') + '</button> ';
-            }
-            if (a.reviewed) {
-                html += '<button class="tagrep-btn" style="background:#6b7280;color:#fff;"' +
-                    ' onclick="tagRepSetReviewed(' + student.userid + ',' + a.id + ',0)">' +
-                    '👁 ' + esc(S.report_action_reviewed_undo || 'Reviewed (undo)') + '</button> ';
-            } else {
-                html += '<button class="tagrep-btn tagrep-btn--outline"' +
-                    ' onclick="tagRepSetReviewed(' + student.userid + ',' + a.id + ',1)">' +
-                    '👁 ' + esc(S.report_action_mark_reviewed || 'Mark as Reviewed') + '</button> ';
-            }
-            html += '<a href="' + esc(a.review_url) +
-                '" target="_blank" class="tagrep-btn tagrep-btn--outline">' +
-                esc(S.report_action_quiz_results || 'Quiz Results') + ' ↗</a>';
-
-            html += '</div>';
-
-            if (a.events.length > 0 || a.screenshots.length > 0 ||
-                    (scan && (scan.video_url || scan.selfie_url))) {
-                html += '<div class="tagrep-session-deletes">';
-                if (a.events.length > 0) {
-                    html += '<button class="tagrep-btn tagrep-btn--delete"' +
-                        ' onclick="tagRepDeleteEvents(' + student.userid + ',' + a.id + ')">' +
-                        '🗑 ' + esc(S.report_action_delete_events || 'Delete Events') +
-                        ' (' + a.events.length + ')</button>';
-                }
-                if (a.screenshots.length > 0) {
-                    html += '<button class="tagrep-btn tagrep-btn--delete"' +
-                        ' onclick="tagRepDeleteScreenshots(' + student.userid + ',' + a.id + ')">' +
-                        '🗑 ' + esc(S.report_action_delete_evidence || 'Delete Evidence') +
-                        ' (' + a.screenshots.length + ')</button>';
-                }
-                if (scan && (scan.video_url || scan.selfie_url)) {
-                    var durl = CFG2.deleteScanBase + '&userid=' + student.userid;
-                    html += '<a href="' + esc(durl) + '" class="tagrep-btn tagrep-btn--delete">' +
-                        '🗑 ' + esc(S.report_action_delete_scan || 'Delete Scan Data') + '</a>';
-                }
-                html += '</div>';
-            }
-
-            html += '</div>';
+                    return {label: def.label, color: SEV_COLOR[def.sev], count: scan.objects[cls]};
+                }) : [],
+                flags: a.events.length > 0 || (scan && scan.suspicious),
+                override: a.override_valid, reviewed: a.reviewed, reviewurl: a.review_url,
+                events: a.events.length, screenshots: a.screenshots.length,
+                deletescan: scan && (scan.video_url || scan.selfie_url),
+                deleteurl: CFG2.deleteScanBase + '&userid=' + student.userid
+            };
         });
-
-        html += '</div></div>';
-        el('tagrep-sessions-content').innerHTML = html;
+        renderInto('report_sessions', {name: student.name, email: student.email,
+            count: attempts.length, attempts: attempts}, el('tagrep-sessions-content'));
     }
 
     /**
@@ -570,7 +412,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
 
         el('tagrep-flags-title').textContent =
             currentStudent.name + ' — ' +
-            (S.report_potential_violations || 'Potential Violation of Rules');
+            (S.report_potential_violations);
 
         // Show session-start browser/OS info in the subtitle if available.
         var sessionStartEvent = currentAttempt.events.find(function(e) {
@@ -625,29 +467,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             return (SEV_ORDER[a.sev] || 9) - (SEV_ORDER[b.sev] || 9);
         });
 
-        var listHtml = '';
-        if (!currentCats.length) {
-            listHtml = '<p class="tagrep-no-flags">' +
-                esc(S.report_flags_no_violations || 'No violations detected.') + '</p>';
-        } else {
-            currentCats.forEach(function(cat, i) {
-                listHtml += '<div class="tagrep-cat-item" id="tagrep-cat-' + i +
-                    '" onclick="tagRepSelectCat(' + i + ')">' +
-                    '<span class="tagrep-cat-icon">' + cat.icon + '</span>' +
-                    '<div class="tagrep-cat-text">' +
-                    '<span class="tagrep-cat-label">' + esc(cat.label) + '</span>' +
-                    '<span class="tagrep-cat-src">&middot; ' +
-                    esc(cat.source === 'scan'
-                        ? (S.report_flags_source_scan  || 'Room Scan')
-                        : (S.report_flags_source_event || 'During Exam')) +
-                    '</span>' +
-                    '</div>' +
-                    '<span class="tagrep-cat-badge" style="background:' + SEV_COLOR[cat.sev] + ';">' +
-                    cat.count + '</span>' +
-                    '</div>';
-            });
-        }
-        el('tagrep-cat-list').innerHTML = listHtml;
+        renderInto('report_categories', {categories: currentCats.map(function(cat, i) {
+            return {index: i, icon: cat.icon, label: cat.label, color: SEV_COLOR[cat.sev],
+                count: cat.count, source: cat.source === 'scan' ? S.report_flags_source_scan : S.report_flags_source_event};
+        })}, el('tagrep-cat-list'));
 
         var scanSec = el('tagrep-scan-section');
         var scanVid = el('tagrep-scan-video');
@@ -669,7 +492,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      */
     function resetViewer() {
         el('tagrep-carousel-title').textContent =
-            S.report_carousel_evidence_title || 'Screen and Webcam Evidence';
+            S.report_carousel_evidence_title;
         el('tagrep-carousel-count').textContent = '';
         if (currentAttempt) {
             renderCarousel(null, '');
@@ -695,8 +518,8 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
         if (!shots.length) {
             el('tagrep-carousel').style.display = 'none';
             el('tagrep-carousel-empty').style.display = '';
-            el('tagrep-carousel-empty').innerHTML =
-                note || (S.report_carousel_empty_attempt || 'No screenshot evidence captured for this attempt.');
+            el('tagrep-carousel-empty').textContent =
+                note || (S.report_carousel_empty_attempt);
             el('tagrep-carousel-count').textContent = typeof note === 'string' ? note : '';
             return;
         }
@@ -709,7 +532,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
 
         var firstHighlightIdx = -1;
         var highlightedCount  = 0;
-        var html = '';
+        var thumbnails = [];
 
         shots.forEach(function(shot, idx) {
             var d = new Date(shot.time * 1000);
@@ -732,19 +555,11 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
 
             var cls = 'tagrep-carousel-thumb' + (isHighlighted ? ' tagrep-carousel-thumb--highlight' : '');
 
-            html += '<div class="' + cls + '" id="tagrep-thumb-' + idx + '"' +
-                ' onclick="tagRepOpenLightbox(' + idx + ')" title="Click to enlarge">' +
-                (isSuspicious ? '<span class="tagrep-suspicious-dot"></span>' : '') +
-                '<img src="' + esc(shot.url) + '" alt="Screenshot" loading="lazy">' +
-                '<div class="tagrep-carousel-caption">' +
-                '<span class="tagrep-carousel-time">' + esc(timeStr) + '</span>' +
-                '<span class="tagrep-carousel-source">' + esc(srcLabel) + '</span>' +
-                '<span class="tagrep-carousel-name">' + esc(studentName) + '</span>' +
-                '</div>' +
-                '</div>';
+            thumbnails.push({class: cls, index: idx, suspicious: isSuspicious,
+                url: shot.url, time: timeStr, source: srcLabel, name: studentName});
         });
 
-        el('tagrep-carousel').innerHTML = html;
+        var rendered = renderInto('report_carousel', {thumbnails: thumbnails}, el('tagrep-carousel'));
         el('tagrep-carousel').style.display = '';
         el('tagrep-carousel-empty').style.display = 'none';
 
@@ -752,18 +567,20 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             el('tagrep-carousel-count').textContent = note;
         } else if (highlightTimes && highlightedCount > 0) {
             el('tagrep-carousel-count').textContent =
-                highlightedCount + ' flagged · ' + shots.length + ' total';
+                I18n.get('report_flagged_count', {flagged: highlightedCount, total: shots.length});
         } else {
             el('tagrep-carousel-count').textContent =
-                shots.length + ' screenshot' + (shots.length !== 1 ? 's' : '');
+                I18n.get('report_screenshot_count', shots.length);
         }
 
+        rendered.then(function() {
         if (firstHighlightIdx !== -1) {
             var firstEl = el('tagrep-thumb-' + firstHighlightIdx);
             if (firstEl) {
                 firstEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
             }
         }
+        });
     }
 
     /**
@@ -828,8 +645,8 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
         } else if (cat.source === 'scan') {
             var hasVid = currentAttempt.scan && currentAttempt.scan.video_url;
             note = hasVid
-                ? (S.report_scan_evidence_in_video || 'Evidence in room scan video')
-                : (S.report_scan_no_video || 'No room scan video available');
+                ? (S.report_scan_evidence_in_video)
+                : (S.report_scan_no_video);
         }
 
         renderCarousel(highlightTimes, note);
@@ -844,8 +661,8 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      */
     function tagRepSetOverride(uid, attemptId, override) {
         var msg = override
-            ? (S.report_confirm_mark_valid || 'Mark this attempt as Valid? This overrides the automated risk assessment.')
-            : (S.report_confirm_clear_override || 'Clear the Valid override? Automated risk assessment will apply again.');
+            ? S.report_confirm_mark_valid
+            : S.report_confirm_clear_override;
         if (!confirm(msg)) {
             return;
         }
@@ -873,10 +690,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                         renderSessions(currentStudent);
                     }
                 } else {
-                    alert('Error: ' + (data.message || 'unknown'));
+                    alert(I18n.get('report_error', data.message || I18n.get('report_unknown_error')));
                 }
             })
-            .catch(function() {alert('Network error saving override.');});
+            .catch(function() {alert(I18n.get('ui_network_error_saving_override'));});
     }
 
     /**
@@ -886,8 +703,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      * @param {number} attemptId Attempt ID.
      */
     function tagRepDeleteScreenshots(uid, attemptId) {
-        if (!confirm(S.report_confirm_delete_evidence ||
-                'Permanently delete all screenshot evidence for this attempt?')) {
+        if (!confirm(S.report_confirm_delete_evidence)) {
             return;
         }
 
@@ -912,10 +728,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                         renderSessions(currentStudent);
                     }
                 } else {
-                    alert('Error: ' + (data.message || 'unknown'));
+                    alert(I18n.get('report_error', data.message || I18n.get('report_unknown_error')));
                 }
             })
-            .catch(function() {alert('Network error deleting screenshots.');});
+            .catch(function() {alert(I18n.get('ui_network_error_deleting_screenshots'));});
     }
 
     /**
@@ -925,8 +741,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
      * @param {number} attemptId Attempt ID.
      */
     function tagRepDeleteEvents(uid, attemptId) {
-        if (!confirm(S.report_confirm_delete_events ||
-                'Permanently delete all logged events for this attempt? This will also clear the risk flags.')) {
+        if (!confirm(S.report_confirm_delete_events)) {
             return;
         }
 
@@ -954,10 +769,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                         renderSessions(currentStudent);
                     }
                 } else {
-                    alert('Error: ' + (data.message || 'unknown'));
+                    alert(I18n.get('report_error', data.message || I18n.get('report_unknown_error')));
                 }
             })
-            .catch(function() {alert('Network error deleting events.');});
+            .catch(function() {alert(I18n.get('ui_network_error_deleting_events'));});
     }
 
     /**
@@ -990,10 +805,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                         renderSessions(currentStudent);
                     }
                 } else {
-                    alert('Error: ' + (data.message || 'unknown'));
+                    alert(I18n.get('report_error', data.message || I18n.get('report_unknown_error')));
                 }
             })
-            .catch(function() {alert('Network error saving reviewed status.');});
+            .catch(function() {alert(I18n.get('ui_network_error_saving_reviewed_status'));});
     }
 
     /**
@@ -1027,10 +842,10 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                         renderSessions(currentStudent);
                     }
                 } else {
-                    alert('Error: ' + (data.message || 'unknown'));
+                    alert(I18n.get('report_error', data.message || I18n.get('report_unknown_error')));
                 }
             })
-            .catch(function() {alert('Network error saving identity status.');});
+            .catch(function() {alert(I18n.get('ui_network_error_saving_identity_status'));});
     }
 
     return {
@@ -1043,6 +858,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
          *                      grantRescanUrl, sesskey, quizid.
          */
         init: function(data, cfg) {
+            return I18n.load().then(function() {
             // Student data may be passed inline or embedded in a <script id="tagrep-data"> tag
             // (the latter avoids Moodle's 1024-char js_call_amd argument limit).
             if (data === null || data === undefined) {
@@ -1067,7 +883,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
             window.tagRepSetIdentity      = tagRepSetIdentity;
 
             var comp = 'quizaccess_tagproctoring';
-            Str.get_strings([
+            return Str.get_strings([
                 // VIOLATIONS labels (indices 0–15)
                 {key: 'violation_tabswitch',         component: comp},
                 {key: 'violation_windowblur',        component: comp},
@@ -1278,6 +1094,7 @@ define("quizaccess_tagproctoring/report", ['core/str'], function(Str) {
                 S.report_identity_mark_failed      = strs[i++];
 
                 renderStudentList(DATA);
+            });
             });
         }
     };

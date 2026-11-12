@@ -1,0 +1,53 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+    @package    quizaccess_tagproctoring
+    @copyright  2026 Andrei Toma <https://www.tandreig.com>
+    @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
+{{!
+    @template quizaccess_tagproctoring/report_students
+
+    Example context (json):
+    {
+    "exampletable": true,
+    "rows": [
+        {
+            "name": "Student",
+            "email": "student@example.com",
+            "userid": 1,
+            "count": 2,
+            "last": "12 Jul",
+            "badge": {
+                "color": "#16a34a",
+                "label": "Valid"
+            }
+        }
+    ]
+}
+}}
+{{! The example wrapper lets the HTML validator check table rows as a complete document. }}
+{{#exampletable}}<table><tbody>{{/exampletable}}
+{{#rows}}
+<tr>
+    <td><strong>{{name}}</strong></td><td class="tagrep-muted">{{email}}</td>
+    <td class="tagrep-center">{{count}}</td><td class="tagrep-muted">{{last}}</td>
+    <td>{{#badge}}{{> quizaccess_tagproctoring/report_badge}}{{/badge}}</td>
+    <td class="tagrep-td-action"><button class="tagrep-btn tagrep-btn--primary" onclick="tagRepOpenStudent({{userid}})">{{#str}} report_action_view_sessions, quizaccess_tagproctoring {{/str}} →</button></td>
+</tr>
+{{/rows}}
+
+{{#exampletable}}</tbody></table>{{/exampletable}}

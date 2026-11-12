@@ -23,7 +23,7 @@
 
 /* global cocoSsd, blazeface */
 
-define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
+define("quizaccess_tagproctoring/recorder", ['core/str', 'quizaccess_tagproctoring/strings'], function(Str, I18n) {
     'use strict';
 
     var cfg = {};
@@ -148,7 +148,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            callback(null, new Error(ES.media_unavailable || 'Media devices are not available in this browser.'));
+            callback(null, new Error(ES.media_unavailable || I18n.get('ui_media_devices_are_not_available_in_this_browser')));
             return;
         }
 
@@ -395,12 +395,12 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 slides[i].style.display = (i === current) ? 'flex' : 'none';
             }
             if (counter) {
-                counter.textContent = (current + 1) + ' of ' + total;
+                counter.textContent = I18n.get('wizard_rule_counter', {current: current + 1, total: total});
             }
             if (fill) {
                 fill.style.width = Math.round((current + 1) / total * 100) + '%';
             }
-            nextBtn.textContent = (current === total - 1) ? 'I Agree & Continue →' : 'Next →';
+            nextBtn.textContent = (current === total - 1) ? I18n.get('wizard_rule_agree') : I18n.get('wizard_rule_next');
         }
 
         updateSlide();
@@ -451,7 +451,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
 
         if (!recordingFormat) {
             setStatus('tagwiz-rs-status',
-                'Video recording is not supported in this browser. Please use a current desktop browser.',
+                I18n.get('ui_video_recording_is_not_supported_in_this_browser_please_use_a_current_desktop_brow'),
                 'danger');
             startBtn.disabled = true;
             return;
@@ -460,7 +460,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
         ensureWebcam(function(stream) {
             if (!stream) {
                 setStatus('tagwiz-rs-status',
-                    'Camera access denied. Please allow camera access in your browser and reload.', 'danger');
+                    I18n.get('ui_camera_access_denied_please_allow_camera_access_in_your_browser_and_reload'), 'danger');
                 startBtn.disabled = true;
                 return;
             }
@@ -473,7 +473,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                     : new MediaRecorder(stream);
             } catch (e) {
                 setStatus('tagwiz-rs-status',
-                    'Video recording could not start in this browser. Please use a current desktop browser.',
+                    I18n.get('ui_video_recording_could_not_start_in_this_browser_please_use_a_current_desktop_brows'),
                     'danger');
                 startBtn.disabled = true;
                 return;
@@ -498,7 +498,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                     startBtn.disabled = true;
                     var countdown = 5;
                     statusEl.textContent = '';
-                    timerEl.textContent = 'Starting in ' + countdown + '\u2026';
+                    timerEl.textContent = I18n.get('wizard_start_countdown', countdown);
 
                     var cdInterval = setInterval(function() {
                         countdown--;
@@ -511,30 +511,30 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                             mediaRecorder.start();
                             dot.classList.add('is-recording');
                             startBtn.disabled = false;
-                            startBtn.textContent = 'Stop Recording';
+                            startBtn.textContent = I18n.get('ui_stop_recording');
                             startBtn.classList.remove('tagwiz-btn--record');
                             startBtn.classList.add('tagwiz-btn--danger');
                             statusEl.textContent =
-                                'Recording\u2026 slowly pan 360\u00b0 around the room and desk.';
-                            timerEl.textContent = '0s / ' + MAX_SEC + 's';
+                                I18n.get('ui_recording_slowly_pan_360_around_the_room_and_desk');
+                            timerEl.textContent = I18n.get('wizard_seconds', {elapsed: 0, total: MAX_SEC});
 
                             tickInterval = setInterval(function() {
                                 elapsed++;
-                                timerEl.textContent = elapsed + 's / ' + MAX_SEC + 's';
+                                timerEl.textContent = I18n.get('wizard_seconds', {elapsed: elapsed, total: MAX_SEC});
                                 if (elapsed >= MAX_SEC) {
                                     clearInterval(tickInterval);
                                     stopRecording();
                                 }
                             }, 1000);
                         } else {
-                            timerEl.textContent = 'Starting in ' + countdown + '\u2026';
+                            timerEl.textContent = I18n.get('wizard_start_countdown', countdown);
                         }
                     }, 1000);
 
                 } else if (mediaRecorder.state === 'recording') {
                     if (elapsed < MIN_SEC) {
                         setStatus('tagwiz-rs-status',
-                            'Keep scanning - ' + elapsed + 's of ' + MIN_SEC + 's done.',
+                            I18n.get('wizard_scan_progress', {elapsed: elapsed, minimum: MIN_SEC}),
                             '');
                         return;
                     }
@@ -550,7 +550,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
         function stopRecording() {
             dot.classList.remove('is-recording');
             startBtn.disabled = true;
-            startBtn.textContent = 'Uploading\u2026';
+            startBtn.textContent = I18n.get('ui_uploading');
             timerEl.textContent = '';
             mediaRecorder.stop();
         }
@@ -561,7 +561,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
          * @param {Blob} blob Recorded video blob.
          */
         function uploadRoomScan(blob) {
-            statusEl.textContent = 'Uploading room scan\u2026';
+            statusEl.textContent = I18n.get('ui_uploading_room_scan');
             var fd = new FormData();
             fd.append('video', blob, 'roomscan.' + recordingFormat.extension);
             fd.append('video_mime', recordingFormat.mimeType || blob.type || '');
@@ -576,7 +576,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                         try {
                             data = JSON.parse(text);
                         } catch (e) {
-                            throw new Error(text ? text.slice(0, 180) : 'Empty upload response');
+                            throw new Error(text ? text.slice(0, 180) : I18n.get('ui_empty_upload_response'));
                         }
                         if (!r.ok) {
                             throw new Error(data.message || ('HTTP ' + r.status));
@@ -589,13 +589,12 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                         if (data.suspicious) {
                             var flagged = Array.isArray(data.flagged) && data.flagged.length
                                 ? data.flagged.join(', ')
-                                : 'prohibited item';
+                                : I18n.get('ui_prohibited_item');
                             setStatus('tagwiz-rs-status',
-                                'Detected: ' + flagged + '. ' +
-                                'Please remove these from your desk and redo the room scan.',
+                                I18n.get('wizard_detected', flagged),
                                 'danger');
                             startBtn.disabled = false;
-                            startBtn.textContent = 'Redo Room Scan';
+                            startBtn.textContent = I18n.get('ui_redo_room_scan');
                             startBtn.classList.remove('tagwiz-btn--danger');
                             startBtn.classList.add('tagwiz-btn--record');
                             started = false;
@@ -603,7 +602,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                             successEl.style.display = 'block';
                             statusEl.textContent = '';
                             startBtn.disabled = true;
-                            startBtn.textContent = 'Room scan complete';
+                            startBtn.textContent = I18n.get('ui_room_scan_complete');
                             startBtn.classList.remove('tagwiz-btn--danger');
                             startBtn.classList.add('tagwiz-btn--record');
                             nextBtn.disabled = false;
@@ -611,10 +610,10 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                         }
                     } else {
                         setStatus('tagwiz-rs-status',
-                            'Upload failed: ' + (data.message || 'unknown error') + '. Retry.', 'danger');
+                            I18n.get('wizard_upload_failed', data.message || I18n.get('ui_unknown_error')), 'danger');
                         markFailed(1);
                         startBtn.disabled = false;
-                        startBtn.textContent = 'Retry Recording';
+                        startBtn.textContent = I18n.get('ui_retry_recording');
                         startBtn.classList.remove('tagwiz-btn--danger');
                         startBtn.classList.add('tagwiz-btn--record');
                         started = false;
@@ -622,11 +621,11 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 })
                 .catch(function(err) {
                     setStatus('tagwiz-rs-status',
-                        'Upload error. ' + (err && err.message ? err.message : 'Please retry.'),
+                        I18n.get('ui_upload_error') + (err && err.message ? err.message : I18n.get('ui_please_retry')),
                         'danger');
                     markFailed(1);
                     startBtn.disabled = false;
-                    startBtn.textContent = '\u21bb Retry Recording';
+                    startBtn.textContent = I18n.get('ui_retry_recording');
                     startBtn.classList.remove('tagwiz-btn--danger');
                     startBtn.classList.add('tagwiz-btn--record');
                     started = false;
@@ -720,20 +719,20 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
 
         ensureWebcam(function(stream) {
             if (!stream) {
-                setStatus('tagwiz-selfie-status', 'Camera unavailable.', 'danger');
+                setStatus('tagwiz-selfie-status', I18n.get('ui_camera_unavailable'), 'danger');
                 return;
             }
             attachStream(video, stream);
             if (selfieCtx) {
                 drawBlurFrame();
             }
-            setStatus('tagwiz-selfie-status', 'Loading face detection…', '');
+            setStatus('tagwiz-selfie-status', I18n.get('ui_loading_face_detection'), '');
             ensureFaceModel(function() {
                 if (!faceModel) {
-                    setStatus('tagwiz-selfie-status', 'Centre your face in the oval, then click Take Photo.', '');
+                    setStatus('tagwiz-selfie-status', I18n.get('ui_centre_your_face_in_the_oval_then_click_take_photo'), '');
                     return;
                 }
-                setStatus('tagwiz-selfie-status', 'Centre your face in the oval.', '');
+                setStatus('tagwiz-selfie-status', I18n.get('ui_centre_your_face_in_the_oval'), '');
                 startFaceScan();
             });
         });
@@ -780,14 +779,14 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 ovalColor    = 'rgba(239,68,68,0.85)';
                 ovalDash     = [];
                 stableFrames = 0;
-                setStatus('tagwiz-selfie-status', 'No face detected — centre your face in the oval.', '');
+                setStatus('tagwiz-selfie-status', I18n.get('ui_no_face_detected_centre_your_face_in_the_oval'), '');
                 return;
             }
             if (faces.length > 1) {
                 ovalColor    = 'rgba(239,68,68,0.85)';
                 ovalDash     = [];
                 stableFrames = 0;
-                setStatus('tagwiz-selfie-status', 'Multiple faces detected — ensure only you are visible.', '');
+                setStatus('tagwiz-selfie-status', I18n.get('ui_multiple_faces_detected_ensure_only_you_are_visible'), '');
                 return;
             }
             var face     = faces[0];
@@ -798,13 +797,13 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 ovalColor    = 'rgba(249,115,22,0.85)';
                 ovalDash     = [8, 4];
                 stableFrames = 0;
-                setStatus('tagwiz-selfie-status', 'Move closer — your face is too small.', '');
+                setStatus('tagwiz-selfie-status', I18n.get('ui_move_closer_your_face_is_too_small'), '');
                 return;
             }
             ovalColor = 'rgba(34,197,94,0.90)';
             ovalDash  = [10, 6];
             stableFrames++;
-            setStatus('tagwiz-selfie-status', 'Face detected — hold still...', '');
+            setStatus('tagwiz-selfie-status', I18n.get('ui_face_detected_hold_still'), '');
             if (stableFrames >= 4) {
                 startCountdown();
             }
@@ -878,7 +877,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             }
             avgLuma = lumaCount > 0 ? lumaSum / lumaCount : 128;
             if (avgLuma < 30) {
-                return {ok: false, reason: 'Lighting too dark — move to a brighter spot'};
+                return {ok: false, reason: I18n.get('ui_lighting_too_dark_move_to_a_brighter_spot')};
             }
 
             lapSum   = 0;
@@ -896,7 +895,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 }
             }
             if (lapCount > 0 && lapSum / lapCount < 2.0) {
-                return {ok: false, reason: 'Image too blurry — hold the camera steady'};
+                return {ok: false, reason: I18n.get('ui_image_too_blurry_hold_the_camera_steady')};
             }
 
             return {ok: true, reason: ''};
@@ -920,7 +919,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             var validation = validateSelfieImage(snapCtx, 640, 480);
             if (!validation.ok) {
                 setStatus('tagwiz-selfie-status',
-                    'Photo rejected: ' + validation.reason + ' — please try again.', 'danger');
+                    I18n.get('wizard_photo_rejected', validation.reason), 'danger');
                 ovalColor    = 'rgba(156,163,175,0.85)';
                 ovalDash     = [10, 6];
                 stableFrames = 0;
@@ -966,7 +965,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             ovalColor         = 'rgba(156,163,175,0.85)';
             ovalDash          = [10, 6];
             stableFrames      = 0;
-            setStatus('tagwiz-selfie-status', 'Centre your face in the oval.', '');
+            setStatus('tagwiz-selfie-status', I18n.get('ui_centre_your_face_in_the_oval'), '');
             if (selfieCtx && !blurAnimId) {
                 drawBlurFrame();
             }
@@ -981,7 +980,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
          * @param {Blob} blob JPEG image blob.
          */
         function uploadSelfie(blob) {
-            setStatus('tagwiz-selfie-status', 'Uploading selfie…', '');
+            setStatus('tagwiz-selfie-status', I18n.get('ui_uploading_selfie'), '');
             var fd = new FormData();
             fd.append('selfie', blob, 'selfie.jpg');
             fd.append('quizid', cfg.quizid);
@@ -991,15 +990,15 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.status === 'ok') {
-                        setStatus('tagwiz-selfie-status', 'Selfie saved. You can continue.', 'success');
+                        setStatus('tagwiz-selfie-status', I18n.get('ui_selfie_saved_you_can_continue'), 'success');
                         nextBtn.disabled = false;
                         markDone(2);
                     } else {
-                        setStatus('tagwiz-selfie-status', 'Upload failed — please retake.', 'danger');
+                        setStatus('tagwiz-selfie-status', I18n.get('ui_upload_failed_please_retake'), 'danger');
                     }
                 })
                 .catch(function() {
-                    setStatus('tagwiz-selfie-status', 'Upload error — please retake.', 'danger');
+                    setStatus('tagwiz-selfie-status', I18n.get('ui_upload_error_please_retake'), 'danger');
                 });
         }
 
@@ -1057,12 +1056,12 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
 
         ensureWebcam(function(stream) {
             if (!stream) {
-                setStatus('tagwiz-id-status', 'Camera unavailable.', 'danger');
+                setStatus('tagwiz-id-status', I18n.get('ui_camera_unavailable'), 'danger');
                 return;
             }
             attachStream(video, stream);
-            setGuide('rgba(156,163,175,.80)', 'Place your ID inside the green box');
-            setStatus('tagwiz-id-status', 'Centre your face above the box and hold your ID inside it.', '');
+            setGuide('rgba(156,163,175,.80)', I18n.get('ui_place_your_id_inside_the_green_box'));
+            setStatus('tagwiz-id-status', I18n.get('ui_centre_your_face_above_the_box_and_hold_your_id_inside_it'), '');
             ensureFaceModel(startScan);
         });
 
@@ -1075,7 +1074,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 if (!scanActive || !video || video.readyState < 2) { return; }
                 if (!faceModel) {
                     setStatus('tagwiz-id-status',
-                        'Centre your face above the box and hold your ID inside it.', '');
+                        I18n.get('ui_centre_your_face_above_the_box_and_hold_your_id_inside_it'), '');
                     return;
                 }
                 faceModel.estimateFaces(video, false).then(function(faces) {
@@ -1119,16 +1118,16 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             if (avgLuma < 25) {
                 cancelCountdown();
                 stableFrames = 0;
-                setGuide('rgba(249,115,22,.85)', 'Improve room lighting');
-                setStatus('tagwiz-id-status', 'Lighting too dark - improve your room lighting.', 'warning');
+                setGuide('rgba(249,115,22,.85)', I18n.get('ui_improve_room_lighting'));
+                setStatus('tagwiz-id-status', I18n.get('ui_lighting_too_dark_improve_your_room_lighting'), 'warning');
                 return;
             }
 
             if (!faces || faces.length === 0) {
                 cancelCountdown();
                 stableFrames = 0;
-                setGuide('rgba(239,68,68,.85)', 'Show your face above the ID box');
-                setStatus('tagwiz-id-status', 'No face detected - show your face alongside your ID.', 'warning');
+                setGuide('rgba(239,68,68,.85)', I18n.get('ui_show_your_face_above_the_id_box'));
+                setStatus('tagwiz-id-status', I18n.get('ui_no_face_detected_show_your_face_alongside_your_id'), 'warning');
                 return;
             }
 
@@ -1140,16 +1139,16 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             if (faceCy > 0.65) {
                 cancelCountdown();
                 stableFrames = 0;
-                setGuide('rgba(249,115,22,.85)', 'Move your face higher in the frame');
+                setGuide('rgba(249,115,22,.85)', I18n.get('ui_move_your_face_higher_in_the_frame'));
                 setStatus('tagwiz-id-status',
-                    'Move your face to the upper part of the frame and hold the ID below.', 'warning');
+                    I18n.get('ui_move_your_face_to_the_upper_part_of_the_frame_and_hold_the_id_below'), 'warning');
                 return;
             }
 
             /* All good */
             stableFrames++;
-            setGuide('rgba(34,197,94,.85)', 'Hold still...');
-            setStatus('tagwiz-id-status', 'Face and ID detected. Hold steady.', 'success');
+            setGuide('rgba(34,197,94,.85)', I18n.get('ui_hold_still'));
+            setStatus('tagwiz-id-status', I18n.get('ui_face_and_id_detected_hold_steady'), 'success');
 
             if (stableFrames >= 3 && !captureActive) {
                 startCountdown();
@@ -1209,7 +1208,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 lumaCount++;
             }
             avgLuma = lumaCount > 0 ? lumaSum / lumaCount : 128;
-            if (avgLuma < 30) { return {ok: false, reason: 'lighting too dark'}; }
+            if (avgLuma < 30) { return {ok: false, reason: I18n.get('ui_lighting_too_dark')}; }
 
             lapSum = 0; lapCount = 0;
             for (ly = 1; ly < H - 1; ly += 4) {
@@ -1225,7 +1224,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 }
             }
             var lapMean = lapCount > 0 ? lapSum / lapCount : 0;
-            if (lapMean < 2.0) { return {ok: false, reason: 'please hold the ID steady'}; }
+            if (lapMean < 2.0) { return {ok: false, reason: I18n.get('ui_please_hold_the_id_steady')}; }
 
             return {ok: true, reason: ''};
         }
@@ -1247,9 +1246,9 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             if (!validation.ok) {
                 captureActive = false;
                 stableFrames  = 0;
-                setGuide('rgba(156,163,175,.80)', 'Place your ID inside the green box');
+                setGuide('rgba(156,163,175,.80)', I18n.get('ui_place_your_id_inside_the_green_box'));
                 setStatus('tagwiz-id-status',
-                    'ID not readable - ' + validation.reason + '. Please try again.', 'danger');
+                    I18n.get('wizard_id_unreadable', validation.reason), 'danger');
                 ensureFaceModel(startScan);
                 return;
             }
@@ -1292,7 +1291,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 guideEl.style.display = '';
                 guideEl.style.removeProperty('--id-guide-color');
             }
-            setGuide('rgba(156,163,175,.80)', 'Place your ID inside the green box');
+            setGuide('rgba(156,163,175,.80)', I18n.get('ui_place_your_id_inside_the_green_box'));
             setStatus('tagwiz-id-status', '', '');
             ensureFaceModel(startScan);
         });
@@ -1304,7 +1303,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
          * @param {Blob} blob JPEG image blob.
          */
         function uploadIdPhoto(blob) {
-            setStatus('tagwiz-id-status', 'Uploading ID photo\u2026', '');
+            setStatus('tagwiz-id-status', I18n.get('ui_uploading_id_photo'), '');
             var fd = new FormData();
             fd.append('idphoto', blob, 'idphoto.jpg');
             fd.append('quizid',  cfg.quizid);
@@ -1315,16 +1314,16 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
                 .then(function(data) {
                     if (data && data.status === 'ok') {
                         setStatus('tagwiz-id-status',
-                            'ID photo saved. Your invigilator will verify your identity.',
+                            I18n.get('ui_id_photo_saved_your_invigilator_will_verify_your_identity'),
                             'success');
                         nextBtn.disabled = false;
                         markDone(3);
                     } else {
-                        setStatus('tagwiz-id-status', 'Upload failed \u2014 please retake.', 'danger');
+                        setStatus('tagwiz-id-status', I18n.get('ui_upload_failed_please_retake'), 'danger');
                     }
                 })
                 .catch(function() {
-                    setStatus('tagwiz-id-status', 'Upload error \u2014 please retake.', 'danger');
+                    setStatus('tagwiz-id-status', I18n.get('ui_upload_error_please_retake'), 'danger');
                 });
         }
 
@@ -1369,14 +1368,14 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
         }
         markDone(4);
         setStatus('tagwiz-ss-status',
-            'After you start, choose Entire Screen when your browser asks.',
+            I18n.get('ui_after_you_start_choose_entire_screen_when_your_browser_asks'),
             'success');
 
         if (startBtn) {
             startBtn.addEventListener('click', function() {
                 if (!done[4]) { return; }
                 startBtn.disabled = true;
-                startBtn.textContent = 'Starting\u2026';
+                startBtn.textContent = I18n.get('ui_starting');
 
                 var moodleConsent = el('id_tagproctoring_consent');
                 if (moodleConsent) { moodleConsent.checked = true; }
@@ -1497,6 +1496,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
          * @param {Object} config Configuration: quizid, uploadurl, selfieurl, idphotourl.
          */
         init: function(config) {
+            return I18n.load().then(function() {
             cfg = config;
             Str.get_strings([
                 {key: 'error_media_unavailable', component: 'quizaccess_tagproctoring'},
@@ -1539,6 +1539,7 @@ define("quizaccess_tagproctoring/recorder", ['core/str'], function(Str) {
             } else {
                 setup();
             }
+            });
         }
     };
 });

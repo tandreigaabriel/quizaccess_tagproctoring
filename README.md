@@ -60,7 +60,24 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 - PHP 8.1 or later
 - HTTPS required — webcam, screen share, and MediaRecorder APIs require a secure context
 - Modern browser with support for `getUserMedia`, `getDisplayMedia`, and `MediaRecorder` (Chrome 72+, Edge 79+, Firefox 66+)
-- A valid TAG Proctoring licence key (free — request at [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring))
+- A valid TAG Proctoring licence key (request at [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring))
+
+## External licence service
+
+The current code requires a licence key validated by the external TAG Proctoring service.
+Without a valid token (or its seven-day grace period), proctoring cannot be enabled and the access rule is inactive; quizzes may remain accessible without proctoring.
+Activation sends the site domain, licence key and Moodle version to `https://www.tandreig.com/api/license/activate`.
+The weekly renewal task uses the same activation endpoint; a separate renewal endpoint constant exists but is not called.
+Service availability and key terms must be confirmed with the provider. This README does not promise a free or instant key.
+The GPL licence covers the plugin code; it does not by itself grant access to the external service.
+
+## Source and issue tracker
+
+[Source repository](https://github.com/tandreigaabriel/quizaccess_tagproctoring) ·
+[Issues](https://github.com/tandreigaabriel/quizaccess_tagproctoring/issues)
+
+These existing URLs continue to redirect after an owner-managed GitHub repository rename to `moodle-quizaccess_tagproctoring`.
+The Moodle component and installation folder remain unchanged.
 
 ## Installation
 
@@ -69,7 +86,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
    mod/quiz/accessrule/tagproctoring/
    ```
 2. Log in as a Moodle administrator and go to **Site administration → Notifications** to run the database upgrade. This creates the required tables.
-3. Request a free licence key at **[tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring)** — the key is emailed to you instantly. Then go to **Site administration → Plugins → Quiz access rules → TAG Proctoring** and paste it. The plugin contacts the activation service and stores the licence status.
+3. Request a licence key at **[tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring)**. Confirm availability and terms with the provider before installation. Then go to **Site administration → Plugins → Quiz access rules → TAG Proctoring** and paste it. The plugin contacts the activation service and stores the licence status.
 4. Enable the access rule on a quiz via **Quiz settings → Extra restrictions on attempts → Enable TAG Proctoring**.
 
 ## Configuration
@@ -78,7 +95,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 
 | Setting                     | Description                                                             |
 | --------------------------- | ----------------------------------------------------------------------- |
-| Licence key                 | Free key — request at tandreig.com/request-key                          |
+| Licence key                 | External activation key — contact the provider for terms                          |
 | Enable room scan            | Master switch for the room scan wizard step                             |
 | Enable screenshots          | Master switch for in-exam screenshot capture                            |
 | Enable event logging        | Master switch for in-exam event tracking                                |
@@ -106,7 +123,7 @@ TAG Proctoring is a quiz access rule plugin for Moodle that enables lightweight 
 **Author:** Andrei Toma — [tandreig.com](https://www.tandreig.com)  
 **Plugin page:** [tandreig.com/plugins/proctoring-system](https://tandreig.com/plugins/proctoring-system)  
 **Support:** [tandreig.com/plugins/support](https://tandreig.com/plugins/support)  
-**Licence key:** [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring) — free, emailed instantly
+**Licence key:** [tandreig.com/request-key](https://tandreig.com/request-key?plugin=tagproctoring) — availability and terms are set by the provider
 
 ### v1.0.0 — 2026-07-12
 
