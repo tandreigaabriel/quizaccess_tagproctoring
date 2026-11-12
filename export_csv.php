@@ -55,7 +55,7 @@ $attempts = $DB->get_records_sql(
 );
 
 if (!$attempts) {
-    die('No finished attempts found.');
+    die(get_string('csv_no_attempts', 'quizaccess_tagproctoring'));
 }
 
 $attemptids = array_column((array) $attempts, 'id', 'id');

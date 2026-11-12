@@ -55,7 +55,7 @@ class cleanup_files extends \core\task\scheduled_task
 
         if ($retentiondays <= 0) {
             // Retention set to 0 means keep data forever.
-            mtrace('TAG Proctoring cleanup: retention set to 0, skipping.');
+            mtrace(get_string('cron_cleanup_skip', 'quizaccess_tagproctoring'));
             return;
         }
 

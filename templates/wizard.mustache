@@ -166,7 +166,7 @@
       </div>
 
       <div class="tagwiz-rule-nav">
-        <span class="tagwiz-rule-counter" id="tagwiz-rule-counter">1 of 10</span>
+        <span class="tagwiz-rule-counter" id="tagwiz-rule-counter">{{#str}}wizard_rule_counter, quizaccess_tagproctoring, {"current":1,"total":10}{{/str}}</span>
         <div class="tagwiz-rule-progress-bar">
           <div class="tagwiz-rule-progress-fill" id="tagwiz-rule-progress-fill" style="width:10%"></div>
         </div>
@@ -257,7 +257,7 @@
           <p id="tagwiz-selfie-status" class="tagwiz-status-msg"></p>
           <div class="tagwiz-cam-actions">
             <button type="button" class="tagwiz-btn tagwiz-btn--capture tagwiz-btn--camera" id="tagwiz-selfie-capture" aria-label="{{#str}} wizard_btn_take_photo, quizaccess_tagproctoring {{/str}}">
-              <span aria-hidden="true">CAM</span>
+              <span aria-hidden="true">{{#str}}wizard_camera_symbol, quizaccess_tagproctoring{{/str}}</span>
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--retake" id="tagwiz-selfie-retake" style="display:none">
               {{#str}} wizard_btn_retake, quizaccess_tagproctoring {{/str}}
@@ -306,7 +306,7 @@
           <p id="tagwiz-id-status" class="tagwiz-status-msg"></p>
           <div class="tagwiz-cam-actions">
             <button type="button" class="tagwiz-btn tagwiz-btn--capture tagwiz-btn--camera" id="tagwiz-id-capture" aria-label="{{#str}} wizard_btn_take_id_photo, quizaccess_tagproctoring {{/str}}">
-              <span aria-hidden="true">CAM</span>
+              <span aria-hidden="true">{{#str}}wizard_camera_symbol, quizaccess_tagproctoring{{/str}}</span>
             </button>
             <button type="button" class="tagwiz-btn tagwiz-btn--retake" id="tagwiz-id-retake" style="display:none">
               {{#str}} wizard_btn_retake, quizaccess_tagproctoring {{/str}}

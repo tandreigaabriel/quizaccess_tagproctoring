@@ -21,7 +21,26 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(Ajax, Str) {
+define("quizaccess_tagproctoring/monitor", ["core/ajax", 'quizaccess_tagproctoring/strings', 'core/templates', 'core/notification'],
+function(Ajax, I18n, Templates, Notification) {
+
+    /**
+     * Render the current overlay content, discarding superseded requests.
+     * @param {string} name Template name.
+     * @param {Object} context Template context.
+     * @param {HTMLElement} target Target element.
+     * @returns {Promise} Render completion.
+     */
+    function renderInto(name, context, target) {
+        var revision = (target.renderRevision || 0) + 1;
+        target.renderRevision = revision;
+        return Templates.renderForPromise('quizaccess_tagproctoring/' + name, context).then(function(result) {
+            if (target.renderRevision === revision) {
+                Templates.replaceNodeContents(target, result.html, result.js);
+            }
+            return target.renderRevision === revision ? result : null;
+        });
+    }
 
     var screenshotInterval = null;
     var webcamStream = null;
@@ -68,7 +87,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         if ((m = ua.match(/Firefox\/(\d+)/))){ return 'Firefox ' + m[1]; }
         if ((m = ua.match(/Version\/(\d+).+Safari/))) { return 'Safari ' + m[1]; }
         if ((m = ua.match(/Chrome\/(\d+)/))) { return 'Chrome ' + m[1]; }
-        return 'Unknown';
+        return I18n.get('ui_unknown_browser');
     }
 
     /**
@@ -85,7 +104,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         if (/Linux/.test(ua)) { return 'Linux'; }
         if (/Android/.test(ua)) { return 'Android'; }
         if (/iPhone|iPad/.test(ua)) { return 'iOS'; }
-        return 'Unknown OS';
+        return I18n.get('ui_unknown_os');
     }
 
     /**
@@ -160,22 +179,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             'background:rgba(10,14,23,.97);display:flex;align-items:center;',
             'justify-content:center;font-family:sans-serif;'
         ].join('');
-        el.innerHTML = [
-            '<div style="text-align:center;color:#fff;max-width:480px;padding:40px;">',
-            '<h2 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#fff;">',
-            OS.sharestop_title + '</h2>',
-            '<p style="color:#94a3b8;font-size:15px;line-height:1.5;margin:0 0 8px;">',
-            OS.sharestop_body1 + '</p>',
-            '<p style="color:#94a3b8;font-size:15px;line-height:1.5;margin:0 0 28px;">',
-            OS.sharestop_body2 + '</p>',
-            '<button id="tagproctor-ss-restart" style="',
-            'background:#334155;color:#fff;border:none;',
-            'padding:14px 32px;border-radius:10px;font-size:16px;font-weight:600;',
-            'cursor:pointer;box-shadow:0 4px 16px rgba(51,65,85,.4);">',
-            OS.sharestop_btn + '</button>',
-            '</div>'
-        ].join('');
         document.body.appendChild(el);
+        renderInto('monitor_sharestop', OS, el).then(function() {
 
         document.getElementById('tagproctor-ss-restart').addEventListener('click', function() {
             el.style.display = 'none';
@@ -194,10 +199,11 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             }).catch(function() {
                 ownScreenShareActive = false;
                 awaitingScreenShare  = false;
-                logEvent('screensharefailed', 'Student failed to restart screen sharing');
+                logEvent('screensharefailed', I18n.get('ui_student_failed_to_restart_screen_sharing'));
                 el.style.display = 'flex'; // show overlay again if they cancelled
             });
         });
+        }).catch(Notification.exception);
     }
 
     /**
@@ -225,7 +231,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         // Detect when the student stops sharing (clicks "Stop sharing" in browser UI).
         stream.getTracks().forEach(function(track) {
             track.addEventListener('ended', function() {
-                logEvent('screensharestop', 'Screen share stream ended during exam');
+                logEvent('screensharestop', I18n.get('ui_screen_share_stream_ended_during_exam'));
                 updateStatusScreen(false);
                 if (screenVideo && screenVideo.parentNode) {
                     screenVideo.parentNode.removeChild(screenVideo);
@@ -384,7 +390,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                         if (nowAway - lastNoFaceShot > 30000) {
                             lastNoFaceShot = nowAway;
                             noFaceCount = 0;
-                            logEvent('faceaway', 'Face not visible for ~9 seconds');
+                            logEvent('faceaway', I18n.get('ui_face_not_visible_for_9_seconds'));
                         }
                     }
                     return;
@@ -445,21 +451,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
 
         var bar = document.createElement('div');
         bar.id = 'tagproctor-statusbar';
-        bar.innerHTML = [
-            '<div class="tp-sb-left">Secure Exam Active</div>',
-            '<div class="tp-sb-indicators">',
-            '<div class="tp-sb-item">',
-            '<span class="tp-sb-dot" id="tp-sb-dot-cam"></span>',
-            '<span id="tp-sb-lbl-cam" style="color:#6b7280">Webcam Initialising</span>',
-            '</div>',
-            '<div class="tp-sb-item">',
-            '<span class="tp-sb-dot" id="tp-sb-dot-scr"></span>',
-            '<span id="tp-sb-lbl-scr" style="color:#6b7280">Screen Share Pending</span>',
-            '</div>',
-            '</div>',
-            '<div class="tp-sb-timer" id="tp-sb-timer">00:00</div>'
-        ].join('');
         document.body.appendChild(bar);
+        renderInto('monitor_status', {}, bar).then(function() {
         document.body.style.paddingTop = '44px';
 
         statusBarWebcamDot = document.getElementById('tp-sb-dot-cam');
@@ -475,6 +468,9 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             var display = (h > 0 ? pad(h) + ':' : '') + pad(m) + ':' + pad(s);
             if (timerEl) { timerEl.textContent = display; }
         }, 1000);
+        updateStatusWebcam(!!webcamStream);
+        updateStatusScreen(!!screenVideo);
+        }).catch(Notification.exception);
     }
 
     /**
@@ -489,10 +485,10 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         var lbl = document.getElementById('tp-sb-lbl-cam');
         if (active) {
             statusBarWebcamDot.className = 'tp-sb-dot active';
-            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = 'Webcam Active'; }
+            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = I18n.get('ui_webcam_active'); }
         } else {
             statusBarWebcamDot.className = 'tp-sb-dot';
-            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = 'Webcam Inactive'; }
+            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = I18n.get('ui_webcam_inactive'); }
         }
     }
 
@@ -508,10 +504,10 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         var lbl = document.getElementById('tp-sb-lbl-scr');
         if (active) {
             statusBarScreenDot.className = 'tp-sb-dot active';
-            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = 'Screen Shared'; }
+            if (lbl) { lbl.style.color = '#e2e8f0'; lbl.textContent = I18n.get('ui_screen_shared'); }
         } else {
             statusBarScreenDot.className = 'tp-sb-dot';
-            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = 'Screen Share Stopped'; }
+            if (lbl) { lbl.style.color = '#6b7280'; lbl.textContent = I18n.get('ui_screen_share_stopped'); }
         }
     }
 
@@ -532,7 +528,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                 loadFaceDetection();
             })
             .catch(function() {
-                logEvent('nocamera', 'Webcam unavailable during attempt');
+                logEvent('nocamera', I18n.get('ui_webcam_unavailable_during_attempt'));
             });
     }
 
@@ -559,15 +555,11 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             'text-align:center',
             'padding:32px'
         ].join(';');
-        overlay.innerHTML = [
-            '<h2 style="margin:0 0 10px;font-size:24px">Multiple Monitors Detected</h2>',
-            '<p style="margin:0 0 8px;font-size:15px;opacity:.85">',
-            'A second screen has been detected. You must disconnect it before continuing.',
-            '</p>',
-            '<p style="font-size:13px;opacity:.6">',
-            'Once disconnected, reload this page to continue your exam.',
-            '</p>'
-        ].join('');
+        renderInto('monitor_message', {
+            title: I18n.get('monitor_multiple_title'),
+            message: I18n.get('ui_a_second_screen_has_been_detected_you_must_disconnect_it_before_continuing'),
+            subtitle: I18n.get('ui_once_disconnected_reload_this_page_to_continue_your_exam')
+        }, overlay).catch(Notification.exception);
         document.body.appendChild(overlay);
     }
 
@@ -580,7 +572,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             var original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
             navigator.mediaDevices.getDisplayMedia = function(constraints) {
                 if (!ownScreenShareActive) {
-                    logEvent("screenshare", "Student initiated screen share");
+                    logEvent("screenshare", I18n.get('ui_student_initiated_screen_share'));
                 }
                 return original(constraints);
             };
@@ -611,7 +603,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                         return;
                     }
                     switchCount++;
-                    logEvent("tabswitch", "Exam page was hidden, count=" + switchCount);
+                    logEvent("tabswitch", I18n.get('ui_exam_page_was_hidden_count') + switchCount);
                     captureScreenshot('tabswitch');
                 }, 1000);
             }
@@ -627,7 +619,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                 if (pageUnloading || document.hasFocus()) {
                     return;
                 }
-                logEvent("windowblur", "Student switched away from the exam window");
+                logEvent("windowblur", I18n.get('ui_student_switched_away_from_the_exam_window'));
                 captureScreenshot('windowblur');
             }, 500);
         });
@@ -638,13 +630,13 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
      */
     function detectCopyPaste() {
         document.addEventListener("copy", function() {
-            logEvent("copypaste", "Copy event");
+            logEvent("copypaste", I18n.get('ui_copy_event'));
         });
         document.addEventListener("paste", function() {
-            logEvent("copypaste", "Paste event");
+            logEvent("copypaste", I18n.get('ui_paste_event'));
         });
         document.addEventListener("cut", function() {
-            logEvent("copypaste", "Cut event");
+            logEvent("copypaste", I18n.get('ui_cut_event'));
         });
     }
 
@@ -654,7 +646,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
     function detectContextMenu() {
         document.addEventListener("contextmenu", function(e) {
             e.preventDefault();
-            logEvent("contextmenu", "Right-click detected");
+            logEvent("contextmenu", I18n.get('ui_right_click_detected'));
             captureScreenshot('contextmenu');
         });
     }
@@ -730,56 +722,46 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         function renderOverlay() {
             var title, msg, sub, btnText, btnBg, borderCol, panelBg, countLine;
             if (exitCount === 0) {
-                title     = 'Full Screen Required';
-                msg       = 'This exam must be taken in full screen with screen sharing active.';
-                sub       = 'Click the button below, then select <strong>Entire Screen</strong> when prompted.';
-                btnText   = 'Enter Full Screen';
+                title     = I18n.get('ui_full_screen_required');
+                msg       = I18n.get('ui_this_exam_must_be_taken_in_full_screen_with_screen_sharing_active');
+                sub       = I18n.get('monitor_select_screen');
+                btnText   = I18n.get('ui_enter_full_screen');
                 btnBg     = '#334155';
                 borderCol = 'rgba(51,65,85,.55)';
                 panelBg   = 'rgba(51,65,85,.18)';
             } else if (exitCount === 1) {
-                title     = 'Exam Monitoring Alert';
-                msg       = 'You exited fullscreen. This has been recorded as a violation.';
-                sub       = 'Please return to fullscreen immediately to continue your exam.';
-                btnText   = 'Return to Full Screen';
+                title     = I18n.get('ui_exam_monitoring_alert');
+                msg       = I18n.get('ui_you_exited_fullscreen_this_has_been_recorded_as_a_violation');
+                sub       = I18n.get('ui_please_return_to_fullscreen_immediately_to_continue_your_exam');
+                btnText   = I18n.get('ui_return_to_full_screen');
                 btnBg     = '#b45309';
                 borderCol = 'rgba(234,179,8,.60)';
                 panelBg   = 'rgba(234,179,8,.10)';
             } else if (exitCount === 2) {
-                title     = 'Repeated Violation Recorded';
-                msg       = 'You have exited fullscreen ' + exitCount + ' times. Your session is under review.';
-                sub       = 'Return to fullscreen immediately to continue your exam.';
-                btnText   = 'Return to Full Screen Now';
+                title     = I18n.get('ui_repeated_violation_recorded');
+                msg       = I18n.get('monitor_repeated', exitCount);
+                sub       = I18n.get('ui_return_to_fullscreen_immediately_to_continue_your_exam');
+                btnText   = I18n.get('ui_return_to_full_screen_now');
                 btnBg     = '#c2410c';
                 borderCol = 'rgba(249,115,22,.65)';
                 panelBg   = 'rgba(249,115,22,.12)';
             } else {
-                title     = 'Critical: Multiple Violations';
-                msg       = 'You have exited fullscreen ' + exitCount + ' times. Your invigilator has been notified.';
-                sub       = 'Further violations will result in your exam being flagged for review.';
-                btnText   = 'Return to Full Screen Now';
+                title     = I18n.get('ui_critical_multiple_violations');
+                msg       = I18n.get('monitor_critical', exitCount);
+                sub       = I18n.get('ui_further_violations_will_result_in_your_exam_being_flagged_for_review');
+                btnText   = I18n.get('ui_return_to_full_screen_now');
                 btnBg     = '#b91c1c';
                 borderCol = 'rgba(239,68,68,.70)';
                 panelBg   = 'rgba(239,68,68,.14)';
             }
-            countLine = exitCount > 0
-                ? '<p style="margin:0 0 20px;font-size:12px;color:rgba(255,255,255,.50)">Violation count: ' + exitCount + '</p>'
-                : '<p style="margin:0 0 20px;font-size:14px;color:rgba(255,255,255,.75)">' +
-                  'Click the button below to begin your exam.</p>';
-            overlay.innerHTML = [
-                '<div style="background:' + panelBg + ';border:1.5px solid ' + borderCol + ';',
-                'border-radius:16px;padding:32px 40px;max-width:480px;width:100%;text-align:center">',
-                '<h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#fff">' + title + '</h2>',
-                '<p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.80);line-height:1.6">' + msg + '</p>',
-                '<p style="margin:0 0 4px;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5">' + sub + '</p>',
-                countLine,
-                '<button id="tagproctor-fs-reenter"',
-                ' style="padding:12px 28px;font-size:15px;font-weight:700;',
-                'border:none;border-radius:8px;background:' + btnBg + ';color:#fff;cursor:pointer">',
-                btnText,
-                '</button>',
-                '</div>'
-            ].join('');
+            countLine = exitCount > 0 ? I18n.get('monitor_violation_count', exitCount) : I18n.get('monitor_begin');
+            renderInto('monitor_fullscreen', {
+                title: title, message: msg, subtitle: sub, count: countLine,
+                button: btnText, buttonbg: btnBg, border: borderCol, panelbg: panelBg
+            }, overlay).then(function(result) {
+                if (!result) {
+                    return;
+                }
             document.getElementById('tagproctor-fs-reenter').addEventListener('click', function() {
                 if (!screenVideo) {
                     requestScreenShare();
@@ -787,6 +769,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                     enterFs();
                 }
             });
+            }).catch(Notification.exception);
         }
 
         /** Handle fullscreen change events, hiding the overlay when in fullscreen. */
@@ -803,7 +786,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                 }
                 if (enteredFullscreen) {
                     exitCount++;
-                    logEvent('fullscreenexit', 'Student exited fullscreen, count=' + exitCount);
+                    logEvent('fullscreenexit', I18n.get('ui_student_exited_fullscreen_count') + exitCount);
                 }
                 renderOverlay();
                 overlay.style.display = 'flex';
@@ -838,16 +821,16 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         var fsReq = fsEl.requestFullscreen || fsEl.webkitRequestFullscreen || fsEl.mozRequestFullScreen;
 
         if (!window.isSecureContext) {
-            missing.push('secure HTTPS context');
+            missing.push(I18n.get('ui_secure_https_context'));
         }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            missing.push('webcam access');
+            missing.push(I18n.get('ui_webcam_access'));
         }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-            missing.push('screen sharing');
+            missing.push(I18n.get('ui_screen_sharing'));
         }
         if (!fsReq) {
-            missing.push('fullscreen');
+            missing.push(I18n.get('ui_full_screen_required'));
         }
 
         return {
@@ -876,21 +859,20 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
         var caps = getCapabilityStatus();
         if (!mobile && caps.supported) {
             if (!canDetectExtendedScreen()) {
-                logEvent('capabilitywarning', 'Multiple monitor detection unavailable in ' + detectBrowser());
+                logEvent('capabilitywarning', I18n.get('ui_multiple_monitor_detection_unavailable_in') + detectBrowser());
             }
             return false;
         }
 
         var title, msg, sub;
         if (mobile) {
-            title = 'Desktop or Laptop Required';
-            msg   = 'Secure exams cannot be taken on a mobile phone or tablet.';
-            sub   = 'Please use a desktop or laptop computer with a current browser.';
+            title = I18n.get('ui_desktop_or_laptop_required');
+            msg   = I18n.get('ui_secure_exams_cannot_be_taken_on_a_mobile_phone_or_tablet');
+            sub   = I18n.get('ui_please_use_a_desktop_or_laptop_computer_with_a_current_browser');
         } else {
-            title = 'Unsupported Browser';
-            msg   = 'This secure exam requires camera, screen sharing, fullscreen, and HTTPS support.';
-            sub   = 'Missing: ' + caps.missing.join(', ') +
-                '. Please update your browser or reopen this page in a supported desktop browser.';
+            title = I18n.get('ui_unsupported_browser');
+            msg   = I18n.get('ui_this_secure_exam_requires_camera_screen_sharing_fullscreen_and_https_support');
+            sub   = I18n.get('monitor_missing', caps.missing.join(', '));
         }
 
         var overlay = document.createElement('div');
@@ -900,14 +882,8 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             'display:flex;flex-direction:column;align-items:center;justify-content:center',
             'color:#fff;font-family:sans-serif;text-align:center;padding:32px'
         ].join(';');
-        overlay.innerHTML = [
-            '<div style="background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.55);',
-            'border-radius:16px;padding:36px 44px;max-width:460px;width:100%">',
-            '<h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#fff">' + title + '</h2>',
-            '<p style="margin:0 0 8px;font-size:14px;color:rgba(255,255,255,.80);line-height:1.6">' + msg + '</p>',
-            '<p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.5">' + sub + '</p>',
-            '</div>'
-        ].join('');
+        renderInto('monitor_message', {title: title, message: msg, subtitle: sub}, overlay)
+            .catch(Notification.exception);
         document.body.appendChild(overlay);
         return true;
     }
@@ -921,7 +897,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
             var widthDiff  = window.outerWidth - window.innerWidth;
             var heightDiff = window.outerHeight - window.innerHeight;
             if (widthDiff > threshold || heightDiff > threshold) {
-                logEvent("devtools", "Possible DevTools open: w=" + widthDiff + " h=" + heightDiff);
+                logEvent("devtools", I18n.get('ui_possible_devtools_open_w') + widthDiff + " h=" + heightDiff);
             }
         }, 10000);
     }
@@ -933,26 +909,18 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
          * @param {Object} config Configuration object: cmid, attemptid, interval.
          */
         init: function(config) {
+            return I18n.load().then(function() {
             cfg = config;
             if (!cfg.attemptid || !cfg.cmid) {
                 return;
             }
+            OS.sharestop_title = I18n.get('overlay_sharestop_title');
+            OS.sharestop_body1 = I18n.get('overlay_sharestop_body1');
+            OS.sharestop_body2 = I18n.get('overlay_sharestop_body2');
+            OS.sharestop_btn = I18n.get('overlay_sharestop_btn');
             if (checkEnvironment()) {
                 return;
             }
-            // Pre-load overlay strings so showScreenShareStopOverlay() is synchronous.
-            var comp = 'quizaccess_tagproctoring';
-            Str.get_strings([
-                {key: 'overlay_sharestop_title', component: comp},
-                {key: 'overlay_sharestop_body1', component: comp},
-                {key: 'overlay_sharestop_body2', component: comp},
-                {key: 'overlay_sharestop_btn',   component: comp},
-            ]).then(function(strs) {
-                OS.sharestop_title = strs[0];
-                OS.sharestop_body1 = strs[1];
-                OS.sharestop_body2 = strs[2];
-                OS.sharestop_btn   = strs[3];
-            });
 
             // Log browser and OS info once at session start so invigilators can
             // see what environment the student used without reading raw user-agent strings.
@@ -1005,6 +973,7 @@ define("quizaccess_tagproctoring/monitor", ["core/ajax", "core/str"], function(A
                 if (screenVideo && screenVideo.parentNode) {
                     screenVideo.parentNode.removeChild(screenVideo);
                 }
+            });
             });
         }
     };

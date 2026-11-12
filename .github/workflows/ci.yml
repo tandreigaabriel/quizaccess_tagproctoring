@@ -42,6 +42,11 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, pdo, mbstring, curl, xml, zip, intl
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install moodle-plugin-ci
         run: |
           composer create-project moodlehq/moodle-plugin-ci ci ^4
@@ -68,6 +73,12 @@ jobs:
 
       - name: Validate Plugin
         run: moodle-plugin-ci validate ./plugin
+
+      - name: Check upgrade savepoints
+        run: moodle-plugin-ci savepoints ./plugin
+
+      - name: Grunt AMD
+        run: moodle-plugin-ci grunt moodle/mod/quiz/accessrule/tagproctoring --tasks=amd
 
       - name: Mustache Lint
         run: moodle-plugin-ci mustache moodle/mod/quiz/accessrule/tagproctoring

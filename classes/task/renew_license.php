@@ -46,9 +46,9 @@ class renew_license extends \core\task\scheduled_task {
     public function execute() {
         $result = \quizaccess_tagproctoring\license::renew();
         if ($result) {
-            mtrace('TAG Proctoring: license token renewed or still valid.');
+            mtrace(get_string('cron_renew_success', 'quizaccess_tagproctoring'));
         } else {
-            mtrace('TAG Proctoring: license renewal failed — no key stored or API error.');
+            mtrace(get_string('cron_renew_failed', 'quizaccess_tagproctoring'));
         }
     }
 }

@@ -125,27 +125,6 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026041400, 'quizaccess', 'tagproctoring');
     }
 
-    // 2026070502 - Add rescanperattempt to per-quiz settings table.
-    if ($oldversion < 2026070502) {
-        $table = new xmldb_table('quizaccess_tagproctoring_settings');
-
-        $field = new xmldb_field(
-            'rescanperattempt',
-            XMLDB_TYPE_INTEGER,
-            '1',
-            null,
-            XMLDB_NOTNULL,
-            null,
-            0,
-            'durationsec'
-        );
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-
-        upgrade_plugin_savepoint(true, 2026070502, 'quizaccess', 'tagproctoring');
-    }
-
     // 2026070501 - Add reviewed fields to overrides table; add needs_rescan to scan table.
     if ($oldversion < 2026070501) {
         $ovtable = new xmldb_table('quizaccess_tagproctoring_overrides');
@@ -173,6 +152,27 @@ function xmldb_quizaccess_tagproctoring_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026070501, 'quizaccess', 'tagproctoring');
+    }
+
+    // 2026070502 - Add rescanperattempt to per-quiz settings table.
+    if ($oldversion < 2026070502) {
+        $table = new xmldb_table('quizaccess_tagproctoring_settings');
+
+        $field = new xmldb_field(
+            'rescanperattempt',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            0,
+            'durationsec'
+        );
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026070502, 'quizaccess', 'tagproctoring');
     }
 
     // 2026070505 - Add performance indexes for large concurrent exams.
